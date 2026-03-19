@@ -1,0 +1,105 @@
+# ------------------------------
+# OS / editor cruft
+# ------------------------------
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# ------------------------------
+# Python bytecode / caches
+# ------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.hypothesis/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+
+# ------------------------------
+# Build / packaging
+# ------------------------------
+build/
+dist/
+.eggs/
+*.egg-info/
+*.egg
+pip-wheel-metadata/
+
+# ------------------------------
+# Virtual environments
+# ------------------------------
+.venv/
+venv/
+env/
+ENV/
+
+# ------------------------------
+# Jupyter
+# ------------------------------
+.ipynb_checkpoints/
+
+# ------------------------------
+# Logs / runtime files
+# ------------------------------
+*.log
+logs/
+*.pid
+*.out
+*.err
+
+# ------------------------------
+# Local environment / secrets
+# ------------------------------
+.env
+.env.*
+*.local
+.python-version
+
+# ------------------------------
+# Application / framework temp files
+# ------------------------------
+instance/
+.cache/
+
+# ------------------------------
+# Data files (do not push raw/generated data)
+# Git does not support huge files 
+# ------------------------------
+**/*data*/
+**/*datasets/
+**/*raw_data/
+**/*processed_data/
+**/*interim_data/
+**/*outputs/
+**/*artifacts/
+**/*results/
+
+
+# ------------------------------
+# Model / experiment artifacts
+# ------------------------------
+models/
+checkpoints/
+mlruns/
+wandb/
+tensorboard/
+runs/
+
+# ------------------------------
+# Optional: keep folder structure with placeholders
+# Uncomment if you want empty dirs tracked
+# ------------------------------
+#!data/.gitkeep
+#!outputs/.gitkeep
+#!models/.gitkeep
