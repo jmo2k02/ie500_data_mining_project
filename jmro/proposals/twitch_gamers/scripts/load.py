@@ -14,8 +14,8 @@ DATA_DIR = os.path.join(_TWITCH_DIR, "data")
 RESULTS_DIR = os.path.join(_TWITCH_DIR, "results")
 os.makedirs(RESULTS_DIR, exist_ok=True)
 
-EDGES_FILE = os.path.join(DATA_DIR, "large_twitch_edges.csv")
-FEATURES_FILE = os.path.join(DATA_DIR, "large_twitch_features.csv")
+EDGES_FILE = os.path.join(DATA_DIR, "renamed_large_twitch_edges.csv")
+FEATURES_FILE = os.path.join(DATA_DIR, "renamed_large_twitch_features.csv")
 
 
 def load_data() -> tuple[pd.DataFrame, pd.DataFrame]:

@@ -20,8 +20,8 @@ def check_quality(features_df: pd.DataFrame) -> None:
         log.info("  No missing values found")
 
     # Duplicates
-    if "numeric_id" in features_df.columns:
-        dupes = features_df.duplicated(subset=["numeric_id"]).sum()
+    if "id" in features_df.columns:
+        dupes = features_df.duplicated(subset=["id"]).sum()
         log.info(f"  Duplicate node IDs: {dupes}")
 
     # Data types
@@ -38,7 +38,7 @@ def describe_features(features_df: pd.DataFrame) -> None:
         log.info(f"    {line}")
 
     # Binary features
-    for col in ["mature", "dead_account", "affiliate"]:
+    for col in ["explicit_content", "dead_account", "affiliate_status"]:
         if col in features_df.columns:
             counts = features_df[col].value_counts()
             pcts = features_df[col].value_counts(normalize=True) * 100
@@ -56,7 +56,7 @@ def describe_features(features_df: pd.DataFrame) -> None:
             log.info(f"    {lang:8s}: {count:>7,} ({pct:5.1f}%)")
 
     # Numerical features
-    for col in ["views", "life_time"]:
+    for col in ["view_count", "account_lifetime"]:
         if col in features_df.columns:
             s = features_df[col]
             log.info(
@@ -66,7 +66,7 @@ def describe_features(features_df: pd.DataFrame) -> None:
             )
 
     # String / timestamp columns
-    for col in ["created_at", "updated_at"]:
+    for col in ["creation_date", "last_stream"]:
         if col in features_df.columns:
             log.info(
                 f"  {col.upper()}: dtype={features_df[col].dtype}, "
@@ -94,7 +94,7 @@ def summarize(
     )
 
     log.info("Binary classification targets:")
-    for col in ["affiliate", "mature", "dead_account"]:
+    for col in ["affiliate_status", "explicit_content", "dead_account"]:
         if col in features_df.columns:
             pos = features_df[col].mean() * 100
             log.info(f"  {col}: {pos:.1f}% positive class")
@@ -106,7 +106,7 @@ def summarize(
             log.info(f"    {lang}: {count:,} ({count / len(features_df) * 100:.1f}%)")
 
     log.info("Regression targets:")
-    for col in ["views", "life_time"]:
+    for col in ["view_count", "account_lifetime"]:
         if col in features_df.columns:
             s = features_df[col]
             log.info(

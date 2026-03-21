@@ -34,7 +34,7 @@ def _save(fig, results_dir: str, filename: str) -> None:
 
 
 def plot_binary_features(features_df: pd.DataFrame, results_dir: str) -> None:
-    cols = ["mature", "dead_account", "affiliate"]
+    cols = ["explicit_content", "dead_account", "affiliate_status"]
     with step_timer("Binary features bar chart"):
         fig, axes = plt.subplots(1, 3, figsize=(15, 5))
         for idx, col in enumerate(cols):
@@ -77,12 +77,12 @@ def plot_language(features_df: pd.DataFrame, results_dir: str) -> None:
 
 
 def plot_views(features_df: pd.DataFrame, results_dir: str) -> None:
-    if "views" not in features_df.columns:
+    if "view_count" not in features_df.columns:
         return
     with step_timer("Views distribution"):
         fig, axes = plt.subplots(1, 2, figsize=(15, 5))
         axes[0].hist(
-            features_df["views"],
+            features_df["view_count"],
             bins=50,
             color="steelblue",
             edgecolor="black",
@@ -93,7 +93,7 @@ def plot_views(features_df: pd.DataFrame, results_dir: str) -> None:
         axes[0].set_ylabel("Frequency")
 
         axes[1].hist(
-            np.log10(features_df["views"] + 1),
+            np.log10(features_df["view_count"] + 1),
             bins=50,
             color="coral",
             edgecolor="black",
@@ -107,34 +107,34 @@ def plot_views(features_df: pd.DataFrame, results_dir: str) -> None:
 
 
 def plot_lifetime(features_df: pd.DataFrame, results_dir: str) -> None:
-    if "life_time" not in features_df.columns:
+    if "account_lifetime" not in features_df.columns:
         return
-    with step_timer("Life time distribution"):
+    with step_timer("Account lifetime distribution"):
         fig, axes = plt.subplots(1, 2, figsize=(15, 5))
         axes[0].hist(
-            features_df["life_time"],
+            features_df["account_lifetime"],
             bins=50,
             color="green",
             edgecolor="black",
             alpha=0.7,
         )
         axes[0].set_title(
-            "Life Time Distribution (Linear)", fontsize=12, fontweight="bold"
+            "Account Lifetime Distribution (Linear)", fontsize=12, fontweight="bold"
         )
-        axes[0].set_xlabel("Life Time")
+        axes[0].set_xlabel("Account Lifetime (days)")
         axes[0].set_ylabel("Frequency")
 
         axes[1].hist(
-            np.log10(features_df["life_time"] + 1),
+            np.log10(features_df["account_lifetime"] + 1),
             bins=50,
             color="purple",
             edgecolor="black",
             alpha=0.7,
         )
         axes[1].set_title(
-            "Life Time Distribution (Log10)", fontsize=12, fontweight="bold"
+            "Account Lifetime Distribution (Log10)", fontsize=12, fontweight="bold"
         )
-        axes[1].set_xlabel("Log10(Life Time + 1)")
+        axes[1].set_xlabel("Log10(Account Lifetime + 1)")
         axes[1].set_ylabel("Frequency")
         fig.tight_layout()
         _save(fig, results_dir, "lifetime_distribution.png")

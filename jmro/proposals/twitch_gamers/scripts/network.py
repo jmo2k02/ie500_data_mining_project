@@ -34,11 +34,11 @@ def build_adjacency(
 
     Returns (A, N) where N is the matrix dimension.
     """
-    N = int(features_df["numeric_id"].max()) + 1
+    N = int(features_df["id"].max()) + 1
 
     with step_timer(f"Building sparse adjacency matrix ({N:,} x {N:,})"):
-        src = edges_df["numeric_id_1"].values
-        dst = edges_df["numeric_id_2"].values
+        src = edges_df["src_id"].values
+        dst = edges_df["target_id"].values
         ones = np.ones(len(src), dtype=np.float64)
         A = sparse.csr_matrix((ones, (src, dst)), shape=(N, N))
         A = A + A.T  # symmetric (undirected)
@@ -67,7 +67,7 @@ def compute_degree(
     """Compute node degree from the adjacency matrix. Returns degree_array[0..N-1]."""
     with step_timer("Degree"):
         degree_array = np.asarray(A.sum(axis=1)).ravel()
-        node_ids = features_df["numeric_id"].values
+        node_ids = features_df["id"].values
         features_df["degree"] = degree_array[node_ids].astype(int)
     log.info(
         f"    mean={features_df['degree'].mean():.2f}  "
@@ -114,7 +114,7 @@ def compute_clustering(
         mask = denom > 0
         cc = np.zeros(N)
         cc[mask] = triangles_x2[mask] / denom[mask]
-        node_ids = features_df["numeric_id"].values
+        node_ids = features_df["id"].values
         features_df["clustering_coeff"] = cc[node_ids]
 
     log.info(f"    mean={features_df['clustering_coeff'].mean():.4f}")
@@ -147,7 +147,7 @@ def compute_pagerank(
                 log.info(f"    Converged at iteration {it + 1} (diff={diff:.2e})")
                 break
 
-        node_ids = features_df["numeric_id"].values
+        node_ids = features_df["id"].values
         features_df["pagerank"] = pr[node_ids]
         del M, D_inv
 
@@ -164,13 +164,13 @@ def compute_core_number(
     """K-core decomposition via NetworkX (already O(m), fast enough)."""
     with step_timer("Core numbers (NetworkX, O(m))"):
         G = nx.from_pandas_edgelist(
-            edges_df, source="numeric_id_1", target="numeric_id_2"
+            edges_df, source="src_id", target="target_id"
         )
-        all_nodes = set(features_df["numeric_id"].values)
+        all_nodes = set(features_df["id"].values)
         G.add_nodes_from(all_nodes - set(G.nodes()))
         core_dict = nx.core_number(G)
         features_df["core_number"] = (
-            features_df["numeric_id"].map(core_dict).fillna(0).astype(int)
+            features_df["id"].map(core_dict).fillna(0).astype(int)
         )
         del G
     log.info(
