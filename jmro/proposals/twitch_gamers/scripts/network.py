@@ -82,18 +82,41 @@ def compute_clustering(
     N: int,
     degree_array: np.ndarray,
     features_df: pd.DataFrame,
+    chunk_size: int = 5000,
 ) -> None:
-    """Clustering coefficient via sparse A * A^2 element-wise trick."""
-    with step_timer("Clustering coefficient (sparse A*A^2)"):
-        A2 = A.dot(A)
-        triangles_x2 = np.asarray(A.multiply(A2).sum(axis=1)).ravel()
+    """Clustering coefficient via chunked sparse row-slice multiplication.
+
+    Instead of computing the full A^2 (which can blow up memory on dense
+    graphs), we process rows in chunks:
+        triangles[chunk] = (A[chunk] @ A).multiply(A[chunk]).sum(axis=1)
+
+    This keeps memory bounded to chunk_size rows of A^2 at a time.
+    """
+    with step_timer("Clustering coefficient (chunked sparse)"):
+        triangles_x2 = np.zeros(N)
+        n_chunks = (N + chunk_size - 1) // chunk_size
+
+        for i in range(0, N, chunk_size):
+            j = min(i + chunk_size, N)
+            chunk_idx = i // chunk_size + 1
+            if chunk_idx % 5 == 1 or chunk_idx == n_chunks:
+                log.info(f"    chunk {chunk_idx}/{n_chunks} (rows {i:,}-{j:,})")
+            # A[i:j] @ A gives rows i..j of A^2
+            # element-wise multiply with A[i:j] keeps only entries where edge exists
+            # row sums = 2 * triangles for each node in the chunk
+            A_chunk = A[i:j]
+            A2_chunk = A_chunk.dot(A)
+            triangles_x2[i:j] = np.asarray(
+                A_chunk.multiply(A2_chunk).sum(axis=1)
+            ).ravel()
+
         denom = degree_array * (degree_array - 1)
         mask = denom > 0
         cc = np.zeros(N)
         cc[mask] = triangles_x2[mask] / denom[mask]
         node_ids = features_df["numeric_id"].values
         features_df["clustering_coeff"] = cc[node_ids]
-        del A2
+
     log.info(f"    mean={features_df['clustering_coeff'].mean():.4f}")
 
 
