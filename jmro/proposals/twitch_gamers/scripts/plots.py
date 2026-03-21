@@ -15,12 +15,46 @@ import seaborn as sns
 import numpy as np
 import pandas as pd
 
+import geopandas as gpd
+from matplotlib.colors import LinearSegmentedColormap
+
 from log import log, step_timer
 
 # Global style
 sns.set_style("whitegrid")
 plt.rcParams["figure.figsize"] = (12, 6)
 plt.rcParams["figure.dpi"] = 150
+
+# ── Language → country mapping ───────────────────────────────────────
+# Maps Twitch ISO-639-1 language codes to lists of ADM0_A3 country codes.
+# Every country that speaks a language receives the full user count for
+# that language (no weighting), since the dataset only records the stream
+# language, not the streamer's actual country.  When a country appears
+# under multiple languages the counts are summed (e.g. Canada = EN + FR,
+# Belgium = FR + NL, Switzerland = DE + FR).
+_LANG_TO_COUNTRIES: dict[str, list[str]] = {
+    "EN": ["USA", "GBR", "CAN", "AUS", "IRL", "NZL", "ZAF"],
+    "DE": ["DEU", "AUT", "CHE"],
+    "FR": ["FRA", "BEL", "CHE", "CAN"],
+    "ES": ["ESP", "MEX", "ARG", "COL", "CHL", "PER", "VEN", "ECU", "BOL"],
+    "RU": ["RUS", "UKR", "BLR"],
+    "ZH": ["CHN", "TWN", "SGP"],
+    "PT": ["BRA", "PRT"],
+    "JA": ["JPN"],
+    "IT": ["ITA"],
+    "KO": ["KOR"],
+    "PL": ["POL"],
+    "SV": ["SWE"],
+    "TR": ["TUR"],
+    "NL": ["NLD", "BEL"],
+    "FI": ["FIN"],
+    "TH": ["THA"],
+    "CS": ["CZE"],
+    "DA": ["DNK"],
+    "HU": ["HUN"],
+    "NO": ["NOR"],
+    # OTHER is intentionally omitted – no single country to assign it to
+}
 
 
 def _save(fig, results_dir: str, filename: str) -> None:
@@ -74,6 +108,159 @@ def plot_language(features_df: pd.DataFrame, results_dir: str) -> None:
             ax.text(v + 500, i, f"{v:,}", va="center", fontsize=9)
         fig.tight_layout()
         _save(fig, results_dir, "language_distribution.png")
+
+
+def plot_language_worldmap(features_df: pd.DataFrame, results_dir: str) -> None:
+    """Plot a world choropleth map coloured by Twitch user count per country.
+
+    Language codes are mapped to countries using ``_LANG_TO_COUNTRIES``.
+    Countries with no users remain light grey; countries with users are
+    coloured on a light-green → dark-red gradient.
+    """
+    if "language" not in features_df.columns:
+        return
+    with step_timer("Language world map"):
+        # --- aggregate user counts per country (ADM0_A3) ----------------
+        # Each country that speaks a language receives the *full* user
+        # count for that language.  When a country appears under multiple
+        # languages the counts are summed (e.g. Canada = EN + FR).
+        lang_counts = features_df["language"].value_counts()
+        country_users: dict[str, float] = {}
+        for lang, count in lang_counts.items():
+            if lang not in _LANG_TO_COUNTRIES:
+                continue
+            for adm0 in _LANG_TO_COUNTRIES[lang]:
+                country_users[adm0] = country_users.get(adm0, 0.0) + count
+
+        if not country_users:
+            log.info("    Skipped (no mappable language data)")
+            return
+
+        # --- load world geometry ----------------------------------------
+        world = gpd.read_file(
+            "https://naciscdn.org/naturalearth/110m/cultural/"
+            "ne_110m_admin_0_countries.zip"
+        )
+        world["users"] = world["ADM0_A3"].map(country_users).fillna(0)
+
+        # --- custom colour map: light green → yellow → dark red ---------
+        cmap = LinearSegmentedColormap.from_list(
+            "green_red",
+            ["#d4edda", "#ffc107", "#dc3545", "#7a0012"],
+            N=256,
+        )
+
+        # --- plot -------------------------------------------------------
+        fig, ax = plt.subplots(1, 1, figsize=(18, 9))
+        # base layer: all countries in light grey
+        world.plot(ax=ax, color="#e0e0e0", edgecolor="white", linewidth=0.3)
+        # overlay: only countries with users > 0
+        has_users = world[world["users"] > 0].copy()
+        if len(has_users) > 0:
+            has_users.plot(
+                column="users",
+                ax=ax,
+                cmap=cmap,
+                edgecolor="white",
+                linewidth=0.3,
+                legend=True,
+                legend_kwds={
+                    "label": "Number of Twitch Users",
+                    "orientation": "horizontal",
+                    "shrink": 0.6,
+                    "pad": 0.05,
+                },
+            )
+            # ── One label per language, with lines to every country ──
+            # Build a lookup from ADM0_A3 → centroid for labelled countries
+            adm0_centroid: dict[str, tuple[float, float]] = {}
+            for _, row in has_users.iterrows():
+                c = row.geometry.centroid
+                adm0_centroid[row["ADM0_A3"]] = (c.x, c.y)
+
+            # Where to place each language label (tx, ty) in data coords.
+            # Tuned manually so labels don't overlap each other.
+            _label_pos: dict[str, tuple[float, float]] = {
+                "EN": (-40, -30),
+                "DE": (42, 62),
+                "FR": (-30, 18),
+                "ES": (-100, -18),
+                "RU": (100, 72),
+                "ZH": (135, 18),
+                "PT": (-60, -40),
+                "JA": (160, 42),
+                "IT": (20, 28),
+                "KO": (150, 30),
+                "PL": (38, 52),
+                "SV": (-8, 72),
+                "TR": (52, 28),
+                "NL": (0, 55),
+                "FI": (55, 72),
+                "TH": (115, 6),
+                "CS": (28, 42),
+                "DA": (8, 65),
+                "HU": (35, 36),
+                "NO": (-18, 65),
+            }
+
+            for lang, adm0_list in _LANG_TO_COUNTRIES.items():
+                if lang not in lang_counts.index:
+                    continue
+                count = lang_counts[lang]
+                if lang not in _label_pos:
+                    continue
+
+                tx, ty = _label_pos[lang]
+
+                # collect centroids of all countries for this language
+                targets = [adm0_centroid[a] for a in adm0_list if a in adm0_centroid]
+                if not targets:
+                    continue
+
+                # draw leader lines from label to every country centroid
+                for cx, cy in targets:
+                    ax.annotate(
+                        "",
+                        xy=(cx, cy),
+                        xytext=(tx, ty),
+                        arrowprops=dict(
+                            arrowstyle="-|>",
+                            color="#555555",
+                            lw=0.8,
+                            shrinkA=12,
+                            shrinkB=2,
+                        ),
+                    )
+
+                # draw the label itself
+                ax.annotate(
+                    f"{lang}: {count:,}",
+                    xy=(tx, ty),
+                    fontsize=7,
+                    fontweight="bold",
+                    ha="center",
+                    va="center",
+                    color="black",
+                    bbox=dict(
+                        boxstyle="round,pad=0.3",
+                        facecolor="white",
+                        alpha=0.85,
+                        edgecolor="#888888",
+                        linewidth=0.5,
+                    ),
+                )
+
+        ax.set_title(
+            "Twitch Users by Country (based on stream language)",
+            fontsize=16,
+            fontweight="bold",
+            pad=15,
+        )
+        ax.set_xlim(-180, 180)
+        ax.set_ylim(-60, 85)
+        ax.set_axis_off()
+        fig.tight_layout()
+        _save(fig, results_dir, "language_worldmap.png")
 
 
 def plot_views(features_df: pd.DataFrame, results_dir: str) -> None:
@@ -286,6 +473,7 @@ def plot_all_basic(features_df: pd.DataFrame, results_dir: str) -> None:
     """Generate all pre-network visualizations."""
     plot_binary_features(features_df, results_dir)
     plot_language(features_df, results_dir)
+    plot_language_worldmap(features_df, results_dir)
     plot_views(features_df, results_dir)
     plot_lifetime(features_df, results_dir)
     plot_correlation(features_df, results_dir)
