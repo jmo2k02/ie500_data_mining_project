@@ -5,11 +5,18 @@ Our repo for the Data Mining Project
 ## Table of Contents
 
 - [Official Lecture Link](https://www.uni-mannheim.de/dws/teaching/course-details/courses-for-master-candidates/ie-500-data-mining/)
+- [Available Services](#available-services)
 - [Course Overview](#course-overview)
 - [Project Requirements](#project-requirements)
 - [Our Dataset: Twitch Gamers](#our-dataset-twitch-gamers)
 - [Proposed Approach](#proposed-approach)
 - [Timeline & Deliverables](#timeline--deliverables)
+
+---
+
+## Available Services
+
+| 
 
 ---
 

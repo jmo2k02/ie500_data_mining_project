@@ -103,3 +103,4 @@ runs/
 #!data/.gitkeep
 #!outputs/.gitkeep
 #!models/.gitkeep
+!jmro/proposals/twitch_gamers/results
