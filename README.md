@@ -16,8 +16,10 @@ Our repo for the Data Mining Project
 
 ## Available Services
 
-| 
-
+| Service | URL | Description | Credentials |
+| ------- | --- | ----------- | ----------- |
+| MLFlow  | http://116.203.119.229:5000/ | Experiment tracking, model registry, and artifact logging for managing the ML lifecycle. | user = "data_mining", pw = "admin123_datadays" |
+| S3-Storage | nbg1.your-objectstorage.com | Object storage backend for datasets, model artifacts, and other persisted files. | ask Justus |
 ---
 
 ## Course Overview
