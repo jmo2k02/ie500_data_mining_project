@@ -1,6 +1,6 @@
 services:
   mlflow:
-    build: .
+    build: services/mlflow
     ports:
       - "${MLFLOW_PORT}:${MLFLOW_PORT}"
     volumes:
