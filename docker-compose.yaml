@@ -1,0 +1,44 @@
+services:
+  mlflow:
+    build: .
+    ports:
+      - "${MLFLOW_PORT}:${MLFLOW_PORT}"
+    volumes:
+      - ./services/mlflow/basic_auth.ini:/mlflow/basic_auth.ini
+      - mlflow_data:/mlflow
+
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port ${MLFLOW_PORT}
+      --app-name basic-auth
+      --backend-store-uri postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      --default-artifact-root s3://${MLFLOW_ARTIFACT_BUCKET}
+      --allowed-hosts "*"
+      --cors-allowed-origins "*"
+    environment:
+      - MLFLOW_AUTH_CONFIG_PATH=/mlflow/basic_auth.ini
+      - MLFLOW_FLASK_SERVER_SECRET_KEY=${MLFLOW_FLASK_SERVER_SECRET_KEY}
+      - MLFLOW_S3_ENDPOINT_URL=${MLFLOW_S3_ENDPOINT_URL}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:15
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "${POSTGRES_USER}"]
+      interval: 5s
+      retries: 5
+
+volumes:
+  mlflow_data:
+  postgres_data:
