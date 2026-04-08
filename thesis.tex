@@ -99,22 +99,16 @@ The structure of this example thesis is \emph{non-binding}, but is highly
 topic-dependent and should be discussed with your advisor. You probably do not
 want to go below the level of subsections, though.
 - Julains Checken therefeore maybe extende text 
-\section{Data Origin}
-To build a robust prediction model, we require a synthesis of historical flight logs and synchronized environmental data. The data gathering process is divided into two primary streams: Aviation Operational Data and Meteorological Data.
-\subsection{Data Source}
-We have identified three primary tiers of data providers, each offering a different balance of cost and granularity:
-- BASED ON "On time Carrier and Flight Delay Data", from the American Buero of Transoiortaton Statsikis.x
-    - Contains flight on Time Perfomance, for every ameruican Flight
-    -  Features Describe Flight Data, and On time Performance for aspect of the flight
-- Airport Datasets, with Basic in infomration about the Airport by OurAirports.com for feature engeneering.
-    - e.g. Every Aiport in the World, with ther Loctaion Data, Size Type
-- Weather Hourly Weather Information from Meteostat libray
-    - hourly data or airport or nearby weather staions, on tempeeratur, windspead, precipcation, snow depth, and various other parameters
-- other posible small other data sources to match to the data, for further features, 
-\subsection{Data Gathering}
-- we get the Base data as CSV files, and the Airports data aswell, while the Weather data is gathered via an liabry api
-we select Our base Data over a 10 Year Period, and used the "IATA" codes to match the Airpot and secondly the Weather Data to the flights.
-
+\section{Data}
+Our Project is mainly based on the "Carrier On-Time Performance" Data, from the American Buro of Transportation statistics, which can be downloaded from their website \link{https://www.transtats.bts.gov/Tables.asp?QO_VQ=EFD&QO_anzr=Nv4yv0r%FDb0-gvzr%FDcr4s14zn0pr%FDQn6n&QO_fu146_anzr=b0-gvzr}.
+IT contains various features, about the flights, such as airline, airports, aircraft tail number and flight distance and especially information on their on time performance such as planned and actual departure and arrival times.
+To keep the task feasible, we only use data from 2013 to 2019, to limit the amount of data and avoid year effected by covid19.
+Additionally, we limit ourselves to 35 Mayor Airports in the US, and 7 mayor airlines, operating during that timeframe.
+This makes the data more consistent and removes noise, while mostly removing less popular flights.
+We additionally add historical weather measurement data by airport weather stations.
+For that we use the meteostat python library, which provides hourly measurements for weather parameters like temperature, wind speed and precipitation.
+This data originally stems from the National Oceanic and Atmospheric Administration (NOAA)\link{https://www.noaa.gov/}.
+Beyond that we plan on experimenting, using additional pieces of information such as holidays, to build some features. 
 
 \section{Approach to Solving the Problem}
 - BUild Basline MOdel, whihc works by usign avergae arrival delays for arrival airplanse at arrival delay that day so far before the subject flight. 
