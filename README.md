@@ -20,6 +20,27 @@ Our repo for the Data Mining Project
 | S3-Storage | nbg1.your-objectstorage.com | Object storage backend for datasets, model artifacts, and other persisted files. | ask Justus |
 ---
 
+## S3 Helper (Upload/Download/Delete)
+
+There is a small helper class at `s3_storage.py` that loads the repo `.env` automatically and wraps common S3 operations.
+
+Example:
+
+```python
+from s3_storage import S3Storage
+
+s3 = S3Storage.from_env()
+
+# upload
+s3.upload_file(local_path="local.csv", key="datasets/local.csv")
+
+# download
+s3.download_file(key="datasets/local.csv", local_path="./downloads/local.csv")
+
+# delete
+s3.delete(key="datasets/local.csv")
+```
+
 ## Course Overview
 
 ### Key Lecture Topics
