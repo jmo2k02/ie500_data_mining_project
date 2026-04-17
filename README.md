@@ -8,8 +8,6 @@ Our repo for the Data Mining Project
 - [Available Services](#available-services)
 - [Course Overview](#course-overview)
 - [Project Requirements](#project-requirements)
-- [Our Dataset: Twitch Gamers](#our-dataset-twitch-gamers)
-- [Proposed Approach](#proposed-approach)
 - [Timeline & Deliverables](#timeline--deliverables)
 
 ---
