@@ -70,7 +70,19 @@ class LoaderStorage:
         path = self.path(*parts)
         return pd.read_csv(path, **self._with_storage_options(path, kwargs))
 
-    def write_parquet(self, dataframe: Any, *parts: str, **kwargs: Any) -> None:
+    def read_parquet(self, *parts: str, **kwargs: Any):
+        """Read a parquet file relative to the configured root."""
+        import pandas as pd
+
+        path = self.path(*parts)
+        return pd.read_parquet(path, **self._with_storage_options(path, kwargs))
+
+    def write_csv(self, dataframe: Any, *parts: str, **kwargs: Any) -> None:
+        """Write a CSV file relative to the configured root."""
+        path = self.path(*parts)
+        dataframe.to_csv(path, **self._with_storage_options(path, kwargs))
+
+    def write_parquet(self, dataframe: Any, index: bool, *parts: str, **kwargs: Any) -> None:
         """Write a parquet file relative to the configured root.
 
         Args:
@@ -80,7 +92,7 @@ class LoaderStorage:
                 `DataFrame.to_parquet`.
         """
         path = self.path(*parts)
-        dataframe.to_parquet(path, **self._with_storage_options(path, kwargs))
+        dataframe.to_parquet(path, index=index, **self._with_storage_options(path, kwargs))
 
     def _build_storage_options(self) -> dict[str, Any]:
         """Build pandas storage options when the root targets S3.
@@ -96,10 +108,12 @@ class LoaderStorage:
         if not self._is_s3_root():
             return {}
 
+        endpoint_url = os.environ.get("S3_ENDPOINT_URL") or os.environ.get(
+            "MLFLOW_S3_ENDPOINT_URL"
+        )
         required = [
             "AWS_ACCESS_KEY_ID",
             "AWS_SECRET_ACCESS_KEY",
-            "MLFLOW_S3_ENDPOINT_URL",
         ]
         missing = [name for name in required if not os.environ.get(name)]
         if missing:
@@ -107,11 +121,13 @@ class LoaderStorage:
                 f"Missing S3 environment variables: {', '.join(sorted(missing))}"
             )
 
-        return {
+        storage_options: dict[str, Any] = {
             "key": os.environ["AWS_ACCESS_KEY_ID"],
             "secret": os.environ["AWS_SECRET_ACCESS_KEY"],
-            "client_kwargs": {"endpoint_url": os.environ["MLFLOW_S3_ENDPOINT_URL"]},
         }
+        if endpoint_url:
+            storage_options["client_kwargs"] = {"endpoint_url": endpoint_url}
+        return storage_options
 
     def _build_filesystem(self):
         """Create an `s3fs` client when the root points at S3."""
