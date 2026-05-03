@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
+import inspect
 from pathlib import Path
 
 import joblib
 import pandas as pd
 from sklearn.model_selection import RandomizedSearchCV, TimeSeriesSplit
+from sklearn.pipeline import Pipeline
+from sklearn.utils.class_weight import compute_sample_weight
 
 from evaluate import classification_report_frame, evaluate_classifier
 from features import build_feature_matrix
@@ -68,10 +71,11 @@ def run_training(config: TrainingConfig) -> dict[str, float]:
     x_test = x_test.reindex(columns=x_train.columns, fill_value=0)
 
     model = make_model(config.model_name)
+    fit_params = _fit_params_for_model(model, y_train)
     if config.tune:
-        model = _tune_model(model, config, x_train, y_train)
+        model = _tune_model(model, config, x_train, y_train, fit_params)
     else:
-        model.fit(x_train, y_train)
+        model.fit(x_train, y_train, **fit_params)
 
     val_metrics = evaluate_classifier(model, x_val, y_val)
     test_metrics = evaluate_classifier(model, x_test, y_test)
@@ -90,10 +94,16 @@ def _load_dataframe(storage: LoaderStorage, input_path: str) -> pd.DataFrame:
     raise ValueError("Only .parquet and .csv inputs are supported")
 
 
-def _tune_model(model, config: TrainingConfig, x_train: pd.DataFrame, y_train: pd.Series):
+def _tune_model(
+    model,
+    config: TrainingConfig,
+    x_train: pd.DataFrame,
+    y_train: pd.Series,
+    fit_params: dict[str, object],
+):
     param_distributions = default_param_distributions(config.model_name)
     if not param_distributions:
-        model.fit(x_train, y_train)
+        model.fit(x_train, y_train, **fit_params)
         return model
 
     search = RandomizedSearchCV(
@@ -106,8 +116,35 @@ def _tune_model(model, config: TrainingConfig, x_train: pd.DataFrame, y_train: p
         random_state=42,
         verbose=1,
     )
-    search.fit(x_train, y_train)
+    search.fit(x_train, y_train, **fit_params)
     return search.best_estimator_
+
+
+def _fit_params_for_model(model, y_train: pd.Series) -> dict[str, object]:
+    """Return sample-weight fit params when the estimator does not already balance classes."""
+    if _uses_builtin_class_weight(model):
+        return {}
+
+    sample_weight = compute_sample_weight(class_weight="balanced", y=y_train)
+
+    if isinstance(model, Pipeline):
+        final_step_name, final_estimator = model.steps[-1]
+        if "sample_weight" in inspect.signature(final_estimator.fit).parameters:
+            return {f"{final_step_name}__sample_weight": sample_weight}
+        return {}
+
+    if "sample_weight" in inspect.signature(model.fit).parameters:
+        return {"sample_weight": sample_weight}
+
+    return {}
+
+
+def _uses_builtin_class_weight(model) -> bool:
+    if isinstance(model, Pipeline):
+        final_estimator = model.steps[-1][1]
+        return getattr(final_estimator, "class_weight", None) is not None
+
+    return getattr(model, "class_weight", None) is not None
 
 
 def _persist_outputs(

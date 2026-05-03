@@ -5,7 +5,7 @@ from s3fs import S3FileSystem
 import pandas as pd
  
 import os
-year_start = 13
+year_start = 19
 year_end = 19
 if __name__ == "__main__":
   storage = LoaderStorage(root="s3://data-mining/")
