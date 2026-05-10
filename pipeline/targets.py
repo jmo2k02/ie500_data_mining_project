@@ -18,7 +18,7 @@ def add_delay_class_target(
     result = dataframe.copy()
     result[target_column] = pd.cut(
         result[delay_column],
-        bins=[float("-inf"), 15, 30, 60, float("inf")],
+        bins=[float("-inf"), 15, 60, 180, float("inf")],
         labels=DELAY_CLASS_ORDER,
         right=True,
     )
