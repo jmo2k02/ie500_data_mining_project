@@ -1,8 +1,8 @@
 AIRPORT_LIMIT_LIST = [
     "JFK",
-    "LAX",
+    "LAX", 
     "MIA",
-    "SFO",
+    "SFO", 
     "EWR",
     "ORD",
     "ATL",
@@ -35,8 +35,14 @@ AIRPORT_LIMIT_LIST = [
     "STL",
     "DAL",
 ]
-
+# List of large contrywide airlines to focus on, based on market share and data availability.
+# AS - Alaska Airlines, AA - American Airlines, DL - Delta Air Lines,
+# F9 - Frontier Airlines, B6 - JetBlue Airways, WN - Southwest Airlines, UA - United Airlines
 AIRLINE_LIMIT_LIST = ["AS", "AA", "DL", "F9", "B6", "WN", "UA"]
+# not considering regional airlnes, as they have different delay patterns and are not the focus of this project.
+# also dissregarding US airways, as the merged with AA
+# and disregrading Spirit, as their callsign NK, only apreas, starting 2015
+
 
 DROP_COLS = [
     "DOT_ID_Reporting_Airline",

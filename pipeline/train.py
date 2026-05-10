@@ -12,7 +12,7 @@ from sklearn.pipeline import Pipeline
 from sklearn.utils.class_weight import compute_sample_weight
 
 from evaluate import classification_report_frame, evaluate_classifier
-from features import build_feature_matrix
+from features import fit_transform, transform
 from loader import LoaderStorage
 from models import default_param_distributions, make_model
 from split import chronological_train_val_test_split
@@ -51,24 +51,12 @@ def run_training(config: TrainingConfig) -> dict[str, float]:
         dataframe,
         time_column=config.time_column,
     )
-
-    x_train, y_train = build_feature_matrix(
-        train_df,
-        target_column=config.target_column,
-        time_column=config.time_column,
-    )
-    x_val, y_val = build_feature_matrix(
-        val_df,
-        target_column=config.target_column,
-        time_column=config.time_column,
-    )
-    x_test, y_test = build_feature_matrix(
-        test_df,
-        target_column=config.target_column,
-        time_column=config.time_column,
-    )
-    x_val = x_val.reindex(columns=x_train.columns, fill_value=0)
-    x_test = x_test.reindex(columns=x_train.columns, fill_value=0)
+    train_df = train_df.drop(columns=[config.time_column])
+    val_df = val_df.drop(columns=[config.time_column])
+    test_df = test_df.drop(columns=[config.time_column])
+    x_train, y_train = fit_transform(train_df)
+    x_val, y_val = transform(val_df)
+    x_test, y_test = transform(test_df)
 
     model = make_model(config.model_name)
     fit_params = _fit_params_for_model(model, y_train)
@@ -77,13 +65,13 @@ def run_training(config: TrainingConfig) -> dict[str, float]:
     else:
         model.fit(x_train, y_train, **fit_params)
 
-    val_metrics = evaluate_classifier(model, x_val, y_val)
-    test_metrics = evaluate_classifier(model, x_test, y_test)
+    val_metrics,val_predictions = evaluate_classifier(model, x_val, y_val)
+    test_metrics,test_predictions = evaluate_classifier(model, x_test, y_test)
     _persist_outputs(config, model, val_metrics, test_metrics, x_train.columns, x_test, y_test)
     _log_mlflow(config, val_metrics, test_metrics)
     return {f"val_{key}": value for key, value in val_metrics.items()} | {
         f"test_{key}": value for key, value in test_metrics.items()
-    }
+    },val_predictions,test_predictions
 
 
 def _load_dataframe(storage: LoaderStorage, input_path: str) -> pd.DataFrame:

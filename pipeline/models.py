@@ -5,15 +5,42 @@ from sklearn.ensemble import HistGradientBoostingClassifier, RandomForestClassif
 from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
-
+from sklearn.base import (
+    BaseEstimator,
+    ClassifierMixin,
+    MultiOutputMixin,
+    RegressorMixin,
+    _fit_context,
+)
+# tensoflow and keras for the neural network model
+from tensorflow import keras
+# import xgboost for the xgboost model
+from xgboost import XGBClassifier
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
 
 RANDOM_STATE = 42
+# extends a standart classifer to predict the most frequent class, so it is a simple baseline model
+class BaselineModel(BaseEstimator, ClassifierMixin):
+    # model that predicts using the 2h_prev_avg_delay binned into the same 4 classes as the target variable, so it is a simple heuristic based on the average delay of the previous 2 hours
+    def fit(self, X, y):
+        # keep sklearn-compatible attributes
+        self.classes_ = np.unique(y)
+        self.n_features_in_ = X.shape[1]
+        # the bins are 0 to 15 minutes, 15 to 60 minutes, 60 to 180 minutes, and more than 180 minutes
+        self.class_bins = [0, 15, 60, 180, np.inf]
+        return self
 
-
+    def predict(self, X):
+        # predict the class based on the average delay of the previous 2 hours
+        return pd.cut(X["2h_prev_avg_delay"], bins=self.class_bins, labels=[0, 1, 2, 3]).astype(int)
 def make_model(name: str):
     """Build a supported multiclass classifier by name."""
     if name == "dummy":
         return DummyClassifier(strategy="most_frequent")
+    if name =="Baseline":
+        return BaselineModel()     
     if name == "logistic_regression":
         return Pipeline(
             [
@@ -42,7 +69,66 @@ def make_model(name: str):
             max_iter=200,
             random_state=RANDOM_STATE,
         )
+    # xgbost
+    if name == "xgboost":
+        return XGBClassifier(
+            learning_rate=0.1,
+            n_estimators=100,
+            max_depth=8,
+            subsample=0.8,
+            colsample_bytree=0.8,
+            random_state=RANDOM_STATE,
+            use_label_encoder=False,
+            eval_metric="mlogloss",
+        )
     raise ValueError(f"Unsupported model: {name}")
+
+def make_neural_network_model(input_shape: int, num_classes: int,
+                               metric: str="accuracy", loss: str="sparse_categorical_crossentropy") -> keras.Model:
+    """Build a simple feedforward neural network for multiclass classification."""
+    model = keras.Sequential(
+        [
+            keras.layers.Input(shape=(input_shape,)),
+            keras.layers.Dense(512, activation="relu"),
+            keras.layers.Dropout(0.5),
+            keras.layers.Dense(128, activation="relu"),
+            keras.layers.Dropout(0.5),
+            keras.layers.Dense(32, activation="relu"),
+            keras.layers.Dense(num_classes, activation="softmax"),
+        ]
+    )
+    model.compile(
+        optimizer=keras.optimizers.Adam(learning_rate=1e-3),
+        loss=loss,
+        metrics=[metric,"f1_score"],
+    )
+    return model
+
+def get_feature_importances(model, feature_names: list[str]):
+    # if the model is a tree based model, we can get the feature importances
+    # so for random forest and hist gradient boosting and xgboost, we can get the feature importances directly from the model
+    if hasattr(model, "feature_importances_"):
+        importances = model.feature_importances_
+    # for logistic regression, we can get the feature importances from the coefficients
+    elif hasattr(model, "coef_"):
+        # we can normalize the coefficents by taking the absolute value and dividing by the sum of the absolute values
+        importances = abs(model.coef_).sum(axis=0) / abs(model.coef_).sum()
+    # for neural network, we can look at the weights of the first layer as a proxy for feature importance, but this is not very reliable
+    elif isinstance(model, keras.Model):
+        importances = abs(model.layers[0].get_weights()[0]).sum(axis=1) / abs(model.layers[0].get_weights()[0]).sum() 
+    else:
+        print("Model type not supported for feature importance")
+        return pd.Series(dtype=float)
+    feature_importances = pd.Series(importances, index=feature_names).sort_values(ascending=False)
+    return feature_importances
+
+def plot_feature_importances(feature_importances: pd.Series, top_n: int = 20):
+    plt.figure(figsize=(10, 6))
+    feature_importances.head(top_n).plot(kind="barh")
+    plt.gca().invert_yaxis()
+    plt.xlabel("Importance")
+    plt.title("Top Feature Importances")
+    plt.show()
 
 
 def default_param_distributions(name: str) -> dict[str, list[object]]:
@@ -65,4 +151,11 @@ def default_param_distributions(name: str) -> dict[str, list[object]]:
             "max_leaf_nodes": [15, 31, 63],
             "l2_regularization": [0.0, 0.01, 0.1],
         }
+    if name == "xgboost":
+        return {
+            "learning_rate": [0.01, 0.1, 0.2],
+            "n_estimators": [50, 100, 200, 400],
+            "max_depth": [3, 6, 9],
+        }
     return {}
+

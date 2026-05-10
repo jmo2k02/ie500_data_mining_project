@@ -1,28 +1,43 @@
 from __future__ import annotations
 
 import pandas as pd
-from sklearn.metrics import accuracy_score, balanced_accuracy_score, classification_report
+from sklearn.metrics import accuracy_score, balanced_accuracy_score, classification_report, f1_score,confusion_matrix
 
 from targets import DELAY_CLASS_ORDER
+import seaborn as sns
+import matplotlib.pyplot as plt
 
+def f1_macro_score(model, x, y) -> float:
+    """Compute the f1-macro score."""
+    predictions = model.predict(x)
+    # chech the shape of predictions, if it is (n_samples, num_classes), take the argmax to get the predicted class labels
+    if predictions.ndim == 2 and predictions.shape[1] > 1:
+        predictions = predictions.argmax(axis=1)
+    f1_macro = f1_score(y, predictions, average="macro", zero_division=0)
+    return f1_macro
 
 def evaluate_classifier(model, x, y) -> dict[str, float]:
     """Compute headline multiclass metrics."""
     predictions = model.predict(x)
+    # chech the shape of predictions, if it is (n_samples, num_classes), take the argmax to get the predicted class labels
+    if predictions.ndim == 2 and predictions.shape[1] > 1:
+        predictions = predictions.argmax(axis=1)
     report = classification_report(
         y,
         predictions,
-        labels=DELAY_CLASS_ORDER,
+        target_names=DELAY_CLASS_ORDER,
         output_dict=True,
         zero_division=0,
     )
+    # print the f1-macro score
+    print(f"F1-macro: {report['macro avg']['f1-score']:.4f}")
     return {
         "accuracy": accuracy_score(y, predictions),
         "balanced_accuracy": balanced_accuracy_score(y, predictions),
         "macro_f1": report["macro avg"]["f1-score"],
-        "weighted_f1": report["weighted avg"]["f1-score"],
-        "large_delay_recall": report["large_delay"]["recall"],
-    }
+        "weighted_f1": report["weighted avg"]["f1-score"]
+        # "large_delay_recall": report["large_delay"]["recall"],
+    },predictions
 
 
 def classification_report_frame(model, x, y) -> pd.DataFrame:
@@ -31,8 +46,18 @@ def classification_report_frame(model, x, y) -> pd.DataFrame:
     report = classification_report(
         y,
         predictions,
-        labels=DELAY_CLASS_ORDER,
+        target_names=DELAY_CLASS_ORDER,
         output_dict=True,
         zero_division=0,
     )
     return pd.DataFrame(report).transpose()
+
+ 
+def plotConfusionMatrix(predictions, y_true, classes=DELAY_CLASS_ORDER):
+    cm = confusion_matrix(y_true=y_true, y_pred=predictions, labels=range(len(classes)))
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=classes, yticklabels=classes)
+    plt.xlabel("Predicted")
+    plt.ylabel("True")
+    plt.title("Confusion Matrix")
+    plt.show()
