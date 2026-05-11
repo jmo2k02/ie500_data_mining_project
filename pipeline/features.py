@@ -10,10 +10,11 @@ from targets import DELAY_CLASS_ORDER
 # list of Columns to Drop
 COLS_TO_DROP = [
     "Information_time_UTC", # not relevant for a model
+    "floor_informationtime_UTC",
+    "Information_time",
+    "floor_informationtime",
     "dep_hour", # aleady included in the CRSDepDateTime
-    "ArrDelayMinutes", # target variable, should not be included as a feature, once the categorical target variable is created, the original delay minutes column should be dropped to avoid leakage
-    "route_delay",
-    ""
+    "ArrDelayMinutes", # target variable, should not be included as a feature, once the categorical target variable is created, the original delay minutes column should be dropped to avoid leakage   
     ]
 # Datetime to convert to norminal:  min max scale them
 DATIMES_TO_SCALE = [
@@ -26,34 +27,39 @@ ONE_HOT_COLS = [
     "Origin","Dest" # ORIGIN an DEST airports
     ]
 # list of numerical columns to scale with min max scaler
-NORMINAL_ENCODE =["2h_prev_cum_count",
-                  "2h_prev_cum_cancelled","2h_prev_flights_in_last_hour",
+NORMINAL_ENCODE =["2h_prev_flights_so_far_day","2h_prev_cum_count_so_far_day",
+                  "2h_prev_cum_cancelled_so_far_day","2h_prev_avg_delay_so_far_day",
                   "DaysToNearestHoliday","Distance"]
-NORMINAL_ENCODE_WEATHER =["temp","temp_ARR", # temperature at departure and arrival airport 2h before the scheduled departure time
-                          "prcp","prcp_ARR", # preciperation at departure and arrival airport 2h before the scheduled departure time
-                          "wspd","wspd_ARR" # wind spead at departure and arrival airport 2h before the scheduled departure time
+NORMINAL_ENCODE_WEATHER =["temp_DEP","temp_ARR", # temperature at departure and arrival airport 2h before the scheduled departure time
+                          "prcp_DEP","prcp_ARR", # preciperation at departure and arrival airport 2h before the scheduled departure time
+                          "wspd_DEP","wspd_ARR", # wind spead at departure and arrival airport 2h before the scheduled departure time
+                          "rhum_DEP","rhum_ARR", # relative humitidy at departure and arrival airport 2h before the scheduled departure time
                           ]
 
 
-
-
-NORMINAL_ENCODE_HIST = ["hd_airline_arr_all","hd_airline_arr_7d","hd_airline_arr_30d", # historical average arrival delay for the airline, calculated over all time, the last 7 days and the last 30 days
-                        "hd_airline_carrier_7d","hd_airline_carrier_30d", # historical average arrival delay, for the airline, which is confirmed carrier delay.
-                        "hd_Ori_dep_all","hd_Ori_dep_7d","hd_Ori_dep_30d", # historical average departure delay for the origin airport, calculated over all time, the last 7 days and the last 30 days
-                        "hd_Ori_nas_7d","hd_Ori_nas_30d", # historical average departure delay for the origin airport, which is confirmed NAS delay, calculated over the last 7 days and the last 30 days
-                        "hd_ground_crew_carrier_7d","hd_ground_crew_carrier_30d", # historical average departure delay for the origin airport, which is confirmed ground crew delay, calculated over the last 7 days and the last 30 days
-                        "hd_ground_crew_late_aircraft_3d","hd_ground_crew_late_aircraft_7d",
-                            "hd_ground_crew_late_aircraft_30d","hd_ground_crew_late_aircraft_all", # historical average departure delay for the origin airport, which is confirmed late aircraft delay, calculated over the last 7 days and the last 30 days
-                        "hd_Des_arr_all","hd_Des_arr_7d","hd_Des_arr_30d", # historical average arrival delay for the destination airport, calculated over all time, the last 7 days and the last 30 days
-                        "hd_Des_nas_7d","hd_Des_nas_30d",
-                        "hd_Des_in_air_7d","hd_Des_in_air_30d", 
-                        "hd_route_arr_7d","hd_route_arr_30d",
-                        "hd_route_nas_7d","hd_route_nas_30d",
-                        "hd_route_in_air_7d","hd_route_in_air_30d",
-                        "hd_route_airline_arr_7d","hd_route_airline_arr_30d",
-                        "hd_route_airline_carrier_7d","hd_route_airline_carrier_30d",
-                        "hd_route_airline_in_air_7d","hd_route_airline_in_air_30d",
+NORMINAL_ENCODE_HIST = [
+    "hist_airline_delay", "hist_airline_delay_7d", "hist_airline_delay_30d",
+    "hist_origin_delay", "hist_origin_delay_7d", "hist_origin_delay_30d",
+    "hist_dest_delay", "hist_dest_delay_7d", "hist_dest_delay_30d",
 ]
+
+# NORMINAL_ENCODE_HIST = ["hd_airline_arr_all","hd_airline_arr_7d","hd_airline_arr_30d", # historical average arrival delay for the airline, calculated over all time, the last 7 days and the last 30 days
+#                         "hd_airline_carrier_7d","hd_airline_carrier_30d", # historical average arrival delay, for the airline, which is confirmed carrier delay.
+#                         "hd_Ori_dep_all","hd_Ori_dep_7d","hd_Ori_dep_30d", # historical average departure delay for the origin airport, calculated over all time, the last 7 days and the last 30 days
+#                         "hd_Ori_nas_7d","hd_Ori_nas_30d", # historical average departure delay for the origin airport, which is confirmed NAS delay, calculated over the last 7 days and the last 30 days
+#                         "hd_ground_crew_carrier_7d","hd_ground_crew_carrier_30d", # historical average departure delay for the origin airport, which is confirmed ground crew delay, calculated over the last 7 days and the last 30 days
+#                         "hd_ground_crew_late_aircraft_3d","hd_ground_crew_late_aircraft_7d",
+#                             "hd_ground_crew_late_aircraft_30d","hd_ground_crew_late_aircraft_all", # historical average departure delay for the origin airport, which is confirmed late aircraft delay, calculated over the last 7 days and the last 30 days
+#                         "hd_Des_arr_all","hd_Des_arr_7d","hd_Des_arr_30d", # historical average arrival delay for the destination airport, calculated over all time, the last 7 days and the last 30 days
+#                         "hd_Des_nas_7d","hd_Des_nas_30d",
+#                         "hd_Des_in_air_7d","hd_Des_in_air_30d", 
+#                         "hd_route_arr_7d","hd_route_arr_30d",
+#                         "hd_route_nas_7d","hd_route_nas_30d",
+#                         "hd_route_in_air_7d","hd_route_in_air_30d",
+#                         "hd_route_airline_arr_7d","hd_route_airline_arr_30d",
+#                         "hd_route_airline_carrier_7d","hd_route_airline_carrier_30d",
+#                         "hd_route_airline_in_air_7d","hd_route_airline_in_air_30d",
+# ]
 
 NORMAL_ENCODE_LAG = [
     "origin_yesterday_delay", "origin_lastweek_delay",
@@ -66,12 +72,15 @@ NORMAL_ENCODE_LAG = [
 LEAVE_AS_IS = ["Prev_flight_DelayMinutes","Expected_Tournaround_time",
                "DayOfYear","CRSTurnaroundTime",
                "DistanceGroup","Year","Month",
-               "DayOfWeek","DayofMonth","CRSElapsedTime","2h_prev_avg_delay",
+               "DayOfWeek","DayofMonth","CRSElapsedTime",
+                 "Time_since_last_certified_record","Flights_before_today",
+                 "total_Flights_scheduled_today","dep_hour"
                ]
 # 
 BOOLEAN_COLS = ["has_prev_flight",
                 "IsHoliday",
-                "FirstFlightRecord"]
+                "FirstFlightRecord","is_Return_flight",
+                "Same_day_previous_flight"]
 # semi bolean (3 Values)
 SEMI_BOOLEAN_COLS = ["Airplane_already_at_airport"] # 0 for not at the airport, 1 for already at the airport, 0.5 for unknown
 
@@ -82,7 +91,7 @@ TARGET_COLUMN = "delay_class"
 SCALING_COLS = DATIMES_TO_SCALE + NORMINAL_ENCODE + NORMINAL_ENCODE_WEATHER + NORMINAL_ENCODE_HIST + NORMAL_ENCODE_LAG
 
 ALL_FEATURE_COLS = ONE_HOT_COLS + SCALING_COLS + LEAVE_AS_IS + BOOLEAN_COLS + SEMI_BOOLEAN_COLS
-ALL_COLS_SET = set(ALL_FEATURE_COLS + [TARGET_COLUMN, TIME_COLUMN] + COLS_TO_DROP)
+ALL_COLS_SET = set(ALL_FEATURE_COLS + [TARGET_COLUMN] + COLS_TO_DROP)
 
 DEFAULT_LEAKAGE_COLUMNS = [
     # Arrival delay values are only known after the flight has arrived.

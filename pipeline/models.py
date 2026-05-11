@@ -34,7 +34,8 @@ class BaselineModel(BaseEstimator, ClassifierMixin):
 
     def predict(self, X):
         # predict the class based on the average delay of the previous 2 hours
-        return pd.cut(X["2h_prev_avg_delay"], bins=self.class_bins, labels=[0, 1, 2, 3]).astype(int)
+        delays = pd.to_numeric(X["2h_prev_avg_delay_so_far_day"], errors="coerce").fillna(0)
+        return pd.cut(delays, bins=self.class_bins, labels=[0, 1, 2, 3], include_lowest=True).astype(int)
 def make_model(name: str):
     """Build a supported multiclass classifier by name."""
     if name == "dummy":
