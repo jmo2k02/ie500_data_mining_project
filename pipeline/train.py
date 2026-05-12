@@ -6,18 +6,18 @@ import inspect
 from pathlib import Path
 
 import joblib
+import numpy as np
 import pandas as pd
 from sklearn.model_selection import RandomizedSearchCV, TimeSeriesSplit
 from sklearn.pipeline import Pipeline
-from sklearn.utils.class_weight import compute_sample_weight
+from sklearn.utils.class_weight import compute_class_weight, compute_sample_weight
 
-from evaluate import classification_report_frame, evaluate_classifier
+from evaluate import classification_report_frame, evaluate_classifier,plotConfusionMatrix
 from features import fit_transform, transform
 from loader import LoaderStorage
-from models import default_param_distributions, make_model
+from models import default_param_distributions, make_model,plot_feature_importances,get_feature_importances
 from split import chronological_train_val_test_split
 from targets import add_delay_class_target
-
 
 @dataclass(frozen=True)
 class TrainingConfig:
@@ -29,6 +29,7 @@ class TrainingConfig:
     target_column: str = "delay_class"
     time_column: str = "CRSDepDateTime_UTC"
     sample_frac: float = 1.0
+    weights: dict[int, float] | None | str = "balanced"
     tune: bool = False
     n_iter: int = 20
     cv_splits: int = 3
@@ -58,20 +59,47 @@ def run_training(config: TrainingConfig) -> dict[str, float]:
     x_val, y_val = transform(val_df)
     x_test, y_test = transform(test_df)
 
-    model = make_model(config.model_name)
-    fit_params = _fit_params_for_model(model, y_train)
-    if config.tune:
-        model = _tune_model(model, config, x_train, y_train, fit_params)
+    weights = None
+    if config.weights is not None:
+        if isinstance(config.weights, str):
+            weights = compute_class_weight(
+                class_weight=config.weights,
+                classes=np.unique(y_train),
+                y=y_train
+            )
+        elif isinstance(config.weights, dict):
+            weights = config.weights
+        else:
+            raise ValueError("weights must be either a dict or the string 'balanced'")
     else:
-        model.fit(x_train, y_train, **fit_params)
+        weights =  {0: 0.3,
+                    1: 0.70,
+                    2: 1.0,
+                    3: 1.5}
+    sample_weights = compute_sample_weight(class_weight=weights, y=y_train)
+
+
+    model = make_model(config.model_name)
+    if config.tune:
+        model = _tune_model(model, config, x_train, y_train, fit_params={"sample_weight": sample_weights} if weights else {})
+    else:
+        model.fit(x_train, y_train, fit_params={"sample_weight": sample_weights} if weights else {})
 
     val_metrics,val_predictions = evaluate_classifier(model, x_val, y_val)
     test_metrics,test_predictions = evaluate_classifier(model, x_test, y_test)
     _persist_outputs(config, model, val_metrics, test_metrics, x_train.columns, x_test, y_test)
     _log_mlflow(config, val_metrics, test_metrics)
+    plotConfusionMatrix(predictions=val_predictions, y_true=y_val)
+    feature_importances = get_feature_importances(model, feature_names=x_train.columns)
+    plot_feature_importances(feature_importances, top_n=30)
+    # if this was hyperparamter tuning, return the best hyperparameters
+    if config.tune:
+        return {f"val_{key}": value for key, value in val_metrics.items()} | {
+            f"test_{key}": value for key, value in test_metrics.items()
+        }, model.get_params()
     return {f"val_{key}": value for key, value in val_metrics.items()} | {
         f"test_{key}": value for key, value in test_metrics.items()
-    },val_predictions,test_predictions
+    }, None
 
 
 def _load_dataframe(storage: LoaderStorage, input_path: str) -> pd.DataFrame:

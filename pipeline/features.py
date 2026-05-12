@@ -13,6 +13,7 @@ COLS_TO_DROP = [
     "floor_informationtime_UTC",
     "Information_time",
     "floor_informationtime",
+    "FlightID_prev_flight_delay_info",
     "dep_hour", # aleady included in the CRSDepDateTime
     "ArrDelayMinutes", # target variable, should not be included as a feature, once the categorical target variable is created, the original delay minutes column should be dropped to avoid leakage   
     ]
@@ -28,8 +29,10 @@ ONE_HOT_COLS = [
     ]
 # list of numerical columns to scale with min max scaler
 NORMINAL_ENCODE =["2h_prev_flights_so_far_day","2h_prev_cum_count_so_far_day",
-                  "2h_prev_cum_cancelled_so_far_day","2h_prev_avg_delay_so_far_day",
-                  "DaysToNearestHoliday","Distance"]
+                "2h_prev_cum_cancelled_so_far_day",
+                "DaysToNearestHoliday","Distance","LateAircraftDelay_prev_flight_delay_info",
+                "WeatherDelay_prev_flight_delay_info","NASDelay_prev_flight_delay_info","CarrierDelay_prev_flight_delay_info"
+                  ]
 NORMINAL_ENCODE_WEATHER =["temp_DEP","temp_ARR", # temperature at departure and arrival airport 2h before the scheduled departure time
                           "prcp_DEP","prcp_ARR", # preciperation at departure and arrival airport 2h before the scheduled departure time
                           "wspd_DEP","wspd_ARR", # wind spead at departure and arrival airport 2h before the scheduled departure time
@@ -74,7 +77,7 @@ LEAVE_AS_IS = ["Prev_flight_DelayMinutes","Expected_Tournaround_time",
                "DistanceGroup","Year","Month",
                "DayOfWeek","DayofMonth","CRSElapsedTime",
                  "Time_since_last_certified_record","Flights_before_today",
-                 "total_Flights_scheduled_today","dep_hour"
+                 "total_Flights_scheduled_today","2h_prev_avg_delay_so_far_day"
                ]
 # 
 BOOLEAN_COLS = ["has_prev_flight",

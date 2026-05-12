@@ -30,6 +30,9 @@ class BaselineModel(BaseEstimator, ClassifierMixin):
         self.n_features_in_ = X.shape[1]
         # the bins are 0 to 15 minutes, 15 to 60 minutes, 60 to 180 minutes, and more than 180 minutes
         self.class_bins = [0, 15, 60, 180, np.inf]
+        # print out the disrtibution of how many flights would get predicted into each class based on the 2h_prev_avg_delay_so_far_day feature, to get an idea of how good this heuristic is
+        print("Distribution of predicted classes based on the 2h_prev_avg_delay_so_far_day feature:")
+        print(pd.cut(pd.to_numeric(X["2h_prev_avg_delay_so_far_day"], errors="coerce").fillna(0), bins=self.class_bins, labels=[0, 1, 2, 3], include_lowest=True).value_counts())
         return self
 
     def predict(self, X):
@@ -40,9 +43,15 @@ def make_model(name: str):
     """Build a supported multiclass classifier by name."""
     if name == "dummy":
         return DummyClassifier(strategy="most_frequent")
-    if name =="Baseline":
-        return BaselineModel()     
-    if name == "logistic_regression":
+    elif name =="Baseline":
+        return BaselineModel()
+    elif name == "logistic_regression":
+        return LogisticRegression(
+            max_iter=500,
+            class_weight="balanced",
+            random_state=RANDOM_STATE,
+        )     
+    elif name == "logistic_regression_pipline":
         return Pipeline(
             [
                 ("scaler", StandardScaler(with_mean=False)),
@@ -56,7 +65,8 @@ def make_model(name: str):
                 ),
             ]
         )
-    if name == "random_forest":
+
+    elif name == "random_forest":
         return RandomForestClassifier(
             n_estimators=200,
             min_samples_leaf=10,
@@ -64,14 +74,14 @@ def make_model(name: str):
             n_jobs=-1,
             random_state=RANDOM_STATE,
         )
-    if name == "hist_gradient_boosting":
+    elif name == "hist_gradient_boosting":
         return HistGradientBoostingClassifier(
             learning_rate=0.08,
             max_iter=200,
             random_state=RANDOM_STATE,
         )
     # xgbost
-    if name == "xgboost":
+    elif name == "xgboost":
         return XGBClassifier(
             learning_rate=0.1,
             n_estimators=100,
@@ -82,6 +92,12 @@ def make_model(name: str):
             use_label_encoder=False,
             eval_metric="mlogloss",
         )
+    elif name == "naive_bayes":
+        from sklearn.naive_bayes import MultinomialNB
+        return MultinomialNB()
+    elif name == "svc":
+        from sklearn.svm import SVC
+        return SVC(class_weight="balanced", random_state=RANDOM_STATE)
     raise ValueError(f"Unsupported model: {name}")
 
 def make_neural_network_model(input_shape: int, num_classes: int,
@@ -156,7 +172,7 @@ def default_param_distributions(name: str) -> dict[str, list[object]]:
         return {
             "learning_rate": [0.01, 0.1, 0.2],
             "n_estimators": [50, 100, 200, 400],
-            "max_depth": [3, 6, 9],
+            "max_depth": [3, 6, 9, 12],
         }
     return {}
 
