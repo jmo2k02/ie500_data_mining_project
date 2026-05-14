@@ -95,9 +95,14 @@ def make_model(name: str):
     elif name == "naive_bayes":
         from sklearn.naive_bayes import MultinomialNB
         return MultinomialNB()
-    elif name == "svc":
+    elif name in {"svc", "support_vector_classifier"}:
         from sklearn.svm import SVC
-        return SVC(class_weight="balanced", random_state=RANDOM_STATE)
+        return Pipeline(
+            [
+                ("scaler", StandardScaler(with_mean=False)),
+                ("classifier", SVC(random_state=RANDOM_STATE)),
+            ]
+        )
     raise ValueError(f"Unsupported model: {name}")
 
 def make_neural_network_model(input_shape: int, num_classes: int,
@@ -174,5 +179,10 @@ def default_param_distributions(name: str) -> dict[str, list[object]]:
             "n_estimators": [50, 100, 200, 400],
             "max_depth": [3, 6, 9, 12],
         }
+    if name in {"svc", "support_vector_classifier"}:
+        return {
+            "classifier__C": [0.1, 1.0, 10.0],
+            "classifier__kernel": ["rbf", "linear"],
+            "classifier__gamma": ["scale", "auto"],
+        }
     return {}
-

@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import uniform
 from sklearn.base import BaseEstimator, ClassifierMixin, clone
-from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix
+from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix, fbeta_score, make_scorer
 from sklearn.model_selection import RandomizedSearchCV, TimeSeriesSplit
 from sklearn.pipeline import Pipeline
 from sklearn.utils.class_weight import compute_class_weight, compute_sample_weight
@@ -192,7 +192,7 @@ def _tune_model(
         model,
         param_distributions=param_distributions,
         n_iter=config.n_iter,
-        scoring="f1_macro",
+        scoring=make_scorer(fbeta_score, beta=2, average="macro", zero_division=0),
         cv=TimeSeriesSplit(n_splits=config.cv_splits),
         n_jobs=-1,
         random_state=42,
@@ -384,6 +384,7 @@ def _persist_outputs(
         },
         "tuning": {
             "enabled": config.tune,
+            "scoring": "fbeta_macro_beta_2" if config.tune else None,
             "n_iter": config.n_iter if config.tune else None,
             "cv_splits": config.cv_splits if config.tune else None,
             "class_weight_intervals": {
