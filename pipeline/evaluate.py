@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pandas as pd
-from sklearn.metrics import accuracy_score, balanced_accuracy_score, classification_report, f1_score,confusion_matrix
+from sklearn.metrics import accuracy_score, balanced_accuracy_score, classification_report, f1_score, fbeta_score,confusion_matrix
 
 from targets import DELAY_CLASS_ORDER
 import seaborn as sns
@@ -16,6 +16,13 @@ def f1_macro_score(model, x, y) -> float:
     f1_macro = f1_score(y, predictions, average="macro", zero_division=0)
     return f1_macro
 
+def f2_macro_score(model, x, y) -> float:
+    """Compute the F-beta macro score with beta=2."""
+    predictions = model.predict(x)
+    if predictions.ndim == 2 and predictions.shape[1] > 1:
+        predictions = predictions.argmax(axis=1)
+    return fbeta_score(y, predictions, beta=2, average="macro", zero_division=0)
+
 def evaluate_classifier(model, x, y) -> dict[str, float]:
     """Compute headline multiclass metrics."""
     predictions = model.predict(x)
@@ -29,12 +36,15 @@ def evaluate_classifier(model, x, y) -> dict[str, float]:
         output_dict=True,
         zero_division=0,
     )
-    # print the f1-macro score
+    f2_macro = fbeta_score(y, predictions, beta=2, average="macro", zero_division=0)
+    # print the F2-macro score, which weights recall higher than precision
     print(f"F1-macro: {report['macro avg']['f1-score']:.4f}")
+    print(f"F2-macro: {f2_macro:.4f}")
     return {
         "accuracy": accuracy_score(y, predictions),
         "balanced_accuracy": balanced_accuracy_score(y, predictions),
         "macro_f1": report["macro avg"]["f1-score"],
+        "macro_f2": f2_macro,
         "weighted_f1": report["weighted avg"]["f1-score"]
         # "large_delay_recall": report["large_delay"]["recall"],
     },predictions

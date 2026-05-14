@@ -8,14 +8,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.base import (
     BaseEstimator,
     ClassifierMixin,
-    MultiOutputMixin,
-    RegressorMixin,
-    _fit_context,
 )
-# tensoflow and keras for the neural network model
-from tensorflow import keras
-# import xgboost for the xgboost model
-from xgboost import XGBClassifier
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -78,11 +71,15 @@ def make_model(name: str):
     elif name == "hist_gradient_boosting":
         return HistGradientBoostingClassifier(
             learning_rate=0.08,
-            max_iter=200,
+            max_iter=300,
+            early_stopping=True,
+            validation_fraction=0.1,
+            n_iter_no_change=15,
             random_state=RANDOM_STATE,
         )
-    # xgbost
+    # xgboost
     elif name == "xgboost":
+        from xgboost import XGBClassifier
         return XGBClassifier(
             learning_rate=0.1,
             n_estimators=100,
@@ -90,20 +87,26 @@ def make_model(name: str):
             subsample=0.8,
             colsample_bytree=0.8,
             random_state=RANDOM_STATE,
-            use_label_encoder=False,
             eval_metric="mlogloss",
+            n_jobs=-1,
         )
     elif name == "naive_bayes":
         from sklearn.naive_bayes import MultinomialNB
         return MultinomialNB()
-    elif name == "svc":
+    elif name in {"svc", "support_vector_classifier"}:
         from sklearn.svm import SVC
-        return SVC(class_weight="balanced", random_state=RANDOM_STATE)
+        return Pipeline(
+            [
+                ("scaler", StandardScaler(with_mean=False)),
+                ("classifier", SVC(random_state=RANDOM_STATE)),
+            ]
+        )
     raise ValueError(f"Unsupported model: {name}")
 
 def make_neural_network_model(input_shape: int, num_classes: int,
-                               metric: str="accuracy", loss: str="sparse_categorical_crossentropy") -> keras.Model:
+                               metric: str="accuracy", loss: str="sparse_categorical_crossentropy"):
     """Build a simple feedforward neural network for multiclass classification."""
+    from tensorflow import keras
     model = keras.Sequential(
         [
             keras.layers.Input(shape=(input_shape,)),
@@ -132,7 +135,7 @@ def get_feature_importances(model, feature_names: list[str]):
         # we can normalize the coefficents by taking the absolute value and dividing by the sum of the absolute values
         importances = abs(model.coef_).sum(axis=0) / abs(model.coef_).sum()
     # for neural network, we can look at the weights of the first layer as a proxy for feature importance, but this is not very reliable
-    elif isinstance(model, keras.Model):
+    elif hasattr(model, "layers") and hasattr(model, "get_weights"):
         importances = abs(model.layers[0].get_weights()[0]).sum(axis=1) / abs(model.layers[0].get_weights()[0]).sum() 
     else:
         print("Model type not supported for feature importance")
@@ -175,5 +178,10 @@ def default_param_distributions(name: str) -> dict[str, list[object]]:
             "n_estimators": [50, 100, 200, 400],
             "max_depth": [3, 6, 9, 12],
         }
+    if name in {"svc", "support_vector_classifier"}:
+        return {
+            "classifier__C": [0.1, 1.0, 10.0],
+            "classifier__kernel": ["rbf", "linear"],
+            "classifier__gamma": ["scale", "auto"],
+        }
     return {}
-
