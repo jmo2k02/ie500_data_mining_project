@@ -42,13 +42,20 @@ def evaluate_classifier(model, x, y) -> dict[str, float]:
     print(f"F1-macro: {report['macro avg']['f1-score']:.4f}")
     print(f"F2-macro: {f2_macro:.4f}")
     return {
-        "accuracy": accuracy_score(y, predictions),
-        "balanced_accuracy": balanced_accuracy_score(y, predictions),
-        "macro_f1": report["macro avg"]["f1-score"],
-        "macro_f2": f2_macro,
-        "weighted_f1": report["weighted avg"]["f1-score"]
-        # "large_delay_recall": report["large_delay"]["recall"],
-    },predictions
+    "accuracy": accuracy_score(y, predictions),
+    "balanced_accuracy": balanced_accuracy_score(y, predictions),
+    "macro_f1": report["macro avg"]["f1-score"],
+    "macro_f2": f2_macro,
+    "weighted_f1": report["weighted avg"]["f1-score"],
+    "small_delay_precision": report["small_delay"]["precision"],
+    "small_delay_recall": report["small_delay"]["recall"],
+    "medium_delay_precision": report["medium_delay"]["precision"],
+    "medium_delay_recall": report["medium_delay"]["recall"],
+    "large_delay_precision": report["large_delay"]["precision"],
+    "large_delay_recall": report["large_delay"]["recall"],
+    "no_delay_precision": report["no_delay"]["precision"],
+"no_delay_recall": report["no_delay"]["recall"],
+}, predictions
 
 
 def classification_report_frame(model, x, y) -> pd.DataFrame:
