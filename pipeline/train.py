@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import uniform
 from sklearn.base import BaseEstimator, ClassifierMixin, clone
-from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix, fbeta_score, make_scorer
+from sklearn.metrics import ConfusionMatrixDisplay, classification_report, confusion_matrix, fbeta_score, make_scorer
 from sklearn.model_selection import RandomizedSearchCV, TimeSeriesSplit
 from sklearn.pipeline import Pipeline
 from sklearn.utils.class_weight import compute_class_weight, compute_sample_weight
@@ -139,16 +139,21 @@ def run_training(config: TrainingConfig) -> dict[str, float]:
     else:
         _fit_estimator_with_sample_weight(model, x_train, y_train, sample_weights)
 
+    train_metrics, train_predictions = evaluate_classifier(model, x_train, y_train)
     val_metrics, val_predictions = evaluate_classifier(model, x_val, y_val)
     test_metrics, test_predictions = evaluate_classifier(model, x_test, y_test)
     _persist_outputs(
         config,
         model,
+        train_metrics,
         val_metrics,
         test_metrics,
+        train_predictions,
         val_predictions,
         test_predictions,
         x_train.columns,
+        x_train,
+        y_train,
         x_val,
         y_val,
         x_test,
@@ -158,17 +163,21 @@ def run_training(config: TrainingConfig) -> dict[str, float]:
         test_rows=len(test_df),
         weights=weights,
     )
-    _log_mlflow(config, val_metrics, test_metrics)
+    _log_mlflow(config, train_metrics, val_metrics, test_metrics)
     plotConfusionMatrix(predictions=val_predictions, y_true=y_val)
     feature_importances = get_feature_importances(model, feature_names=x_train.columns)
     if not feature_importances.empty:
         plot_feature_importances(feature_importances, top_n=30)
     # if this was hyperparamter tuning, return the best hyperparameters
     if config.tune:
-        return {f"val_{key}": value for key, value in val_metrics.items()} | {
+        return {f"train_{key}": value for key, value in train_metrics.items()} | {
+            f"val_{key}": value for key, value in val_metrics.items()
+        } | {
             f"test_{key}": value for key, value in test_metrics.items()
         }, getattr(model, "_tuning_best_params", model.get_params())
-    return {f"val_{key}": value for key, value in val_metrics.items()} | {
+    return {f"train_{key}": value for key, value in train_metrics.items()} | {
+        f"val_{key}": value for key, value in val_metrics.items()
+    } | {
         f"test_{key}": value for key, value in test_metrics.items()
     }, None
 
@@ -294,11 +303,15 @@ def _uses_builtin_class_weight(model) -> bool:
 def _persist_outputs(
     config: TrainingConfig,
     model,
+    train_metrics: dict[str, float],
     val_metrics: dict[str, float],
     test_metrics: dict[str, float],
+    train_predictions,
     val_predictions,
     test_predictions,
     feature_columns,
+    x_train: pd.DataFrame,
+    y_train: pd.Series,
     x_val: pd.DataFrame,
     y_val: pd.Series,
     x_test: pd.DataFrame,
@@ -318,18 +331,28 @@ def _persist_outputs(
     model_path = run_dir / "model.joblib"
     run_info_path = run_dir / "run_info.json"
     features_path = run_dir / "features.json"
+    train_report_path = run_dir / "classification_report_train.csv"
     validation_report_path = run_dir / "classification_report_validation.csv"
     test_report_path = run_dir / "classification_report_test.csv"
 
     joblib.dump(model, model_path)
     features_path.write_text(json.dumps(list(feature_columns), indent=2))
 
-    validation_report = classification_report_frame(model, x_val, y_val)
-    test_report = classification_report_frame(model, x_test, y_test)
+    train_report = _classification_report_frame_from_predictions(y_train, train_predictions)
+    validation_report = _classification_report_frame_from_predictions(y_val, val_predictions)
+    test_report = _classification_report_frame_from_predictions(y_test, test_predictions)
+    train_report.to_csv(train_report_path)
     validation_report.to_csv(validation_report_path)
     test_report.to_csv(test_report_path)
 
     saved_images = {}
+    _save_confusion_matrix_image(
+        train_predictions,
+        y_train,
+        images_dir / "train_confusion_matrix.png",
+        "Train Confusion Matrix",
+    )
+    saved_images["train_confusion_matrix"] = "images/train_confusion_matrix.png"
     _save_confusion_matrix_image(
         val_predictions,
         y_val,
@@ -385,6 +408,7 @@ def _persist_outputs(
             "model_path": "model.joblib",
             "run_info_path": "run_info.json",
             "features_path": "features.json",
+            "train_report_path": "classification_report_train.csv",
             "validation_report_path": "classification_report_validation.csv",
             "test_report_path": "classification_report_test.csv",
             "tuning_cv_results_path": "tuning_cv_results.csv" if cv_results_path else None,
@@ -411,14 +435,45 @@ def _persist_outputs(
             "best_score": getattr(model, "_tuning_best_score", None),
         },
         "metrics": {
+            "train": train_metrics,
             "validation": val_metrics,
             "test": test_metrics,
+            "overfit_gaps": _compute_overfit_gaps(train_metrics, val_metrics, test_metrics),
+            "train_classification_report": train_report,
             "validation_classification_report": validation_report,
             "test_classification_report": test_report,
         },
         "feature_importances_top_30": feature_importances.head(30),
     }
     run_info_path.write_text(json.dumps(_make_json_safe(run_info), indent=2))
+
+
+def _classification_report_frame_from_predictions(y_true, predictions) -> pd.DataFrame:
+    report = classification_report(
+        y_true,
+        predictions,
+        labels=range(len(DELAY_CLASS_ORDER)),
+        target_names=DELAY_CLASS_ORDER,
+        output_dict=True,
+        zero_division=0,
+    )
+    return pd.DataFrame(report).transpose()
+
+
+def _compute_overfit_gaps(
+    train_metrics: dict[str, float],
+    val_metrics: dict[str, float],
+    test_metrics: dict[str, float],
+) -> dict[str, float]:
+    gaps = {}
+    for metric_name, train_value in train_metrics.items():
+        val_value = val_metrics.get(metric_name)
+        test_value = test_metrics.get(metric_name)
+        if val_value is not None:
+            gaps[f"train_minus_validation_{metric_name}"] = train_value - val_value
+        if test_value is not None:
+            gaps[f"train_minus_test_{metric_name}"] = train_value - test_value
+    return gaps
 
 
 def _make_json_safe(value):
@@ -476,6 +531,7 @@ def _save_feature_importance_image(
 
 def _log_mlflow(
     config: TrainingConfig,
+    train_metrics: dict[str, float],
     val_metrics: dict[str, float],
     test_metrics: dict[str, float],
 ) -> None:
@@ -497,6 +553,8 @@ def _log_mlflow(
                 "tune": config.tune,
             }
         )
+        for key, value in train_metrics.items():
+            mlflow.log_metric(f"train_{key}", value)
         for key, value in val_metrics.items():
             mlflow.log_metric(f"val_{key}", value)
         for key, value in test_metrics.items():
