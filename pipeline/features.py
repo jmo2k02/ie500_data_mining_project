@@ -14,6 +14,10 @@ COLS_TO_DROP = [
     "UTC_CRS_FlightDate",
     "Information_time",
     "floor_informationtime",
+    "CRSDepDateTime_UTC", # split/order timestamp, not a model feature
+    "UTC_CRS_FlightDate",
+    "UTC_CRS_ARRFlightDate",
+    "UTC_ARRFlightDate",
     "route_delay",
     "dep_hour", # aleady included in the CRSDepDateTime
     "ArrDelayMinutes", # target variable, should not be included as a feature, once the categorical target variable is created, the original delay minutes column should be dropped to avoid leakage   
@@ -192,7 +196,7 @@ def fit_transform(df: pd.DataFrame,scale:str="minmax") -> tuple[pd.DataFrame, pd
 
 
     # drop the columns that we will not use in our model
-    df = df.drop(columns=COLS_TO_DROP)
+    df = df.drop(columns=COLS_TO_DROP, errors="ignore")
 
     # One Hot Encode the One_hot_cols
     global ONE_HOT_ENCODER, SCALER
@@ -230,7 +234,7 @@ def fit_transform(df: pd.DataFrame,scale:str="minmax") -> tuple[pd.DataFrame, pd
 
 def transform(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.Series]:
     # drop the columns that we will not use in our model
-    df = df.drop(columns=COLS_TO_DROP)
+    df = df.drop(columns=COLS_TO_DROP, errors="ignore")
 
     # One Hot Encode the One_hot_cols
     global ONE_HOT_ENCODER, SCALER
