@@ -32,6 +32,7 @@ def evaluate_classifier(model, x, y) -> dict[str, float]:
     report = classification_report(
         y,
         predictions,
+        labels=range(len(DELAY_CLASS_ORDER)),
         target_names=DELAY_CLASS_ORDER,
         output_dict=True,
         zero_division=0,
@@ -56,6 +57,7 @@ def classification_report_frame(model, x, y) -> pd.DataFrame:
     report = classification_report(
         y,
         predictions,
+        labels=range(len(DELAY_CLASS_ORDER)),
         target_names=DELAY_CLASS_ORDER,
         output_dict=True,
         zero_division=0,

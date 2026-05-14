@@ -78,6 +78,7 @@ class ClassWeightTunedClassifier(BaseEstimator, ClassifierMixin):
 
     def fit(self, X, y):
         self.estimator_ = clone(self.estimator)
+        _disable_builtin_class_weight(self.estimator_)
         self.class_weight_ = {
             0: self.class_weight_0,
             1: self.class_weight_1,
@@ -160,7 +161,8 @@ def run_training(config: TrainingConfig) -> dict[str, float]:
     _log_mlflow(config, val_metrics, test_metrics)
     plotConfusionMatrix(predictions=val_predictions, y_true=y_val)
     feature_importances = get_feature_importances(model, feature_names=x_train.columns)
-    plot_feature_importances(feature_importances, top_n=30)
+    if not feature_importances.empty:
+        plot_feature_importances(feature_importances, top_n=30)
     # if this was hyperparamter tuning, return the best hyperparameters
     if config.tune:
         return {f"val_{key}": value for key, value in val_metrics.items()} | {
@@ -248,6 +250,18 @@ def _fit_estimator_with_sample_weight(model, x_train, y_train, sample_weight):
     else:
         model.fit(x_train, y_train)
     return model
+
+
+def _disable_builtin_class_weight(model) -> None:
+    """Avoid multiplying tuned sample weights by estimator class_weight settings."""
+    if isinstance(model, Pipeline):
+        final_step_name, final_estimator = model.steps[-1]
+        if "class_weight" in final_estimator.get_params():
+            model.set_params(**{f"{final_step_name}__class_weight": None})
+        return
+
+    if hasattr(model, "get_params") and "class_weight" in model.get_params():
+        model.set_params(class_weight=None)
 
 
 def _fit_params_for_model(model, y_train: pd.Series) -> dict[str, object]:
