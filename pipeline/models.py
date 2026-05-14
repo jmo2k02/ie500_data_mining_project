@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-N_JOBS = -1
+N_JOBS = 9
 RANDOM_STATE = 42
 # extends a standart classifer to predict the most frequent class, so it is a simple baseline model
 class BaselineModel(BaseEstimator, ClassifierMixin):
@@ -86,12 +86,15 @@ def make_model(name: str):
     # xgboost
     elif name == "xgboost":
         from xgboost import XGBClassifier
-        return XGBClassifier(
-            learning_rate=0.1,
-            n_estimators=100,
-            max_depth=8,
-            subsample=0.8,
-            colsample_bytree=0.8,
+            return XGBClassifier(
+            objective="multi:softprob",
+            tree_method="hist",
+            learning_rate=0.06,
+            n_estimators=400,
+            max_depth=7,
+            subsample=1.0,
+            colsample_bytree=1.0,
+            reg_lambda=10.0,
             random_state=RANDOM_STATE,
             eval_metric="mlogloss",
             n_jobs=N_JOBS,
@@ -184,13 +187,17 @@ def default_param_distributions(name: str) -> dict[str, list[object]|object]:
         }
     if name == "xgboost":
         return {
-            "learning_rate": [0.03, 0.06, 0.1],
-            "n_estimators": [100, 200, 400],
-            "max_depth": [3, 5, 7, 9],
-            "subsample": [0.7, 0.9, 1.0],
-            "colsample_bytree": [00.7, 0.9, 1.0],
-            "reg_lambda": [1.0, 3.0, 10.0]
-        }
+        "learning_rate": [0.02, 0.03, 0.05, 0.06, 0.08, 0.1],
+        "n_estimators": [300, 400, 600, 800],
+        "max_depth": [4, 5, 6, 7, 8],
+        "min_child_weight": [1, 3, 5, 10],
+        "subsample": [0.7, 0.85, 1.0],
+        "colsample_bytree": [0.7, 0.85, 1.0],
+        "reg_lambda": [1.0, 3.0, 10.0, 30.0],
+        "reg_alpha": [0.0, 0.1, 1.0],
+        "gamma": [0.0, 0.5, 1.0, 2.0],
+        "max_delta_step": [0, 1, 5],
+    }
     if name in {"svc", "support_vector_classifier"}:
         return {
             "classifier__C": [0.1, 1.0, 10.0],
