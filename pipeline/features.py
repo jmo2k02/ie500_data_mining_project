@@ -48,33 +48,24 @@ NORMINAL_ENCODE_HIST = [
     "hist_airline_delay", "hist_airline_delay_7d", "hist_airline_delay_30d",
     "hist_origin_delay", "hist_origin_delay_7d", "hist_origin_delay_30d",
     "hist_dest_delay", "hist_dest_delay_7d", "hist_dest_delay_30d",
+    "hist_flg_delay", "hist_flg_delay_30d",
+    "hist_flg_median_delay", "hist_flg_median_delay_30d",
+    "hist_flg_count_delay", "hist_flg_count_delay_30d"
 ]
 #day so far columns
 NORMAL_ENCODE_DAY_SO_FAR = [
     'R_dep_cum_count_sfd', 'R_dep_cum_DepDelayMinutes_sfd', #'R_dep_avg_DepDelayMinutes_sfd', m-> not this one , it will not be encoded, sicne it is used for the basline
     'R_dep_count_fligts_lh', 'R_dep_avg_DepDelayMinutes_lh',
-
     'R_arr_origin_cum_count_sfd',
     'R_arr_origin_cum_ArrDelayMinutes_sfd', 'R_arr_origin_avg_ArrDelayMinutes_sfd',
-    'R_arr_origin_cum_route_delay_sfd', 'R_arr_origin_avg_route_delay_sfd',
-    'R_arr_origin_cum_LateAircraftDelay_sfd', 'R_arr_origin_avg_LateAircraftDelay_sfd',
     'R_arr_origin_cum_WeatherDelay_sfd', 'R_arr_origin_avg_WeatherDelay_sfd',
     'R_arr_origin_cum_NASDelay_sfd', 'R_arr_origin_avg_NASDelay_sfd',
-    'R_arr_origin_cum_CarrierDelay_sfd', 'R_arr_origin_avg_CarrierDelay_sfd',
-        'R_arr_origin_count_fligts_lh', 'R_arr_origin_avg_ArrDelayMinutes_lh',
-        'R_arr_origin_avg_route_delay_lh', 'R_arr_origin_avg_LateAircraftDelay_lh',
-    'R_arr_origin_avg_WeatherDelay_lh', 'R_arr_origin_avg_NASDelay_lh', 'R_arr_origin_avg_CarrierDelay_lh',
-
+    'R_arr_origin_count_fligts_lh', 'R_arr_origin_avg_ArrDelayMinutes_lh',
+    'R_arr_origin_avg_WeatherDelay_lh', 'R_arr_origin_avg_NASDelay_lh', 
     'R_dest_arrived_cum_count_sfd', 'R_dest_arrived_cum_ArrDelayMinutes_sfd',
-    'R_dest_arrived_avg_ArrDelayMinutes_sfd', 'R_dest_arrived_cum_route_delay_sfd',
-    'R_dest_arrived_avg_route_delay_sfd', 'R_dest_arrived_cum_LateAircraftDelay_sfd',
-    'R_dest_arrived_avg_LateAircraftDelay_sfd', 'R_dest_arrived_cum_WeatherDelay_sfd',
-    'R_dest_arrived_avg_WeatherDelay_sfd', 'R_dest_arrived_cum_NASDelay_sfd',
-    'R_dest_arrived_avg_NASDelay_sfd', 'R_dest_arrived_cum_CarrierDelay_sfd',
-    'R_dest_arrived_avg_CarrierDelay_sfd', 'R_dest_arrived_count_fligts_lh',
-    'R_dest_arrived_avg_ArrDelayMinutes_lh', 'R_dest_arrived_avg_route_delay_lh',
-    'R_dest_arrived_avg_LateAircraftDelay_lh', 'R_dest_arrived_avg_WeatherDelay_lh',
-    'R_dest_arrived_avg_NASDelay_lh', 'R_dest_arrived_avg_CarrierDelay_lh']
+    'R_dest_arrived_avg_ArrDelayMinutes_sfd','R_dest_arrived_cum_NASDelay_sfd',
+    'R_dest_arrived_avg_NASDelay_sfd','R_dest_arrived_count_fligts_lh',
+    'R_dest_arrived_avg_ArrDelayMinutes_lh', 'R_dest_arrived_avg_NASDelay_lh']
                             
 
 # NORMINAL_ENCODE_HIST = ["hd_airline_arr_all","hd_airline_arr_7d","hd_airline_arr_30d", # historical average arrival delay for the airline, calculated over all time, the last 7 days and the last 30 days
