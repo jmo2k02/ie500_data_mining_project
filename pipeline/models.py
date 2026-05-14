@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 RANDOM_STATE = 42
 # extends a standart classifer to predict the most frequent class, so it is a simple baseline model
 class BaselineModel(BaseEstimator, ClassifierMixin):
-    delay_feature = "2h_prev_avg_delay_so_far_day"
+    delay_feature = "R_dep_avg_DepDelayMinutes_sfd"
 
     # model that predicts using the 2h_prev_avg_delay binned into the same 4 classes as the target variable, so it is a simple heuristic based on the average delay of the previous 2 hours
     def fit(self, X, y):
