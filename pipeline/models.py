@@ -9,6 +9,7 @@ from sklearn.base import (
     BaseEstimator,
     ClassifierMixin,
 )
+from scipy.stats import loguniform
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -16,6 +17,8 @@ import matplotlib.pyplot as plt
 RANDOM_STATE = 42
 # extends a standart classifer to predict the most frequent class, so it is a simple baseline model
 class BaselineModel(BaseEstimator, ClassifierMixin):
+    delay_feature = "2h_prev_avg_delay_so_far_day"
+
     # model that predicts using the 2h_prev_avg_delay binned into the same 4 classes as the target variable, so it is a simple heuristic based on the average delay of the previous 2 hours
     def fit(self, X, y):
         # keep sklearn-compatible attributes
@@ -24,13 +27,13 @@ class BaselineModel(BaseEstimator, ClassifierMixin):
         # the bins are 0 to 15 minutes, 15 to 60 minutes, 60 to 180 minutes, and more than 180 minutes
         self.class_bins = [0, 15, 60, 180, np.inf]
         # print out the disrtibution of how many flights would get predicted into each class based on the 2h_prev_avg_delay_so_far_day feature, to get an idea of how good this heuristic is
-        print("Distribution of predicted classes based on the R_dep_avg_DepDelayMinutes_sfd feature:")
-        print(pd.cut(pd.to_numeric(X["R_dep_avg_DepDelayMinutes_sfd"], errors="coerce").fillna(0), bins=self.class_bins, labels=[0, 1, 2, 3], include_lowest=True).value_counts())
+        print(f"Distribution of predicted classes based on the {self.delay_feature} feature:")
+        print(pd.cut(pd.to_numeric(X[self.delay_feature], errors="coerce").fillna(0), bins=self.class_bins, labels=[0, 1, 2, 3], include_lowest=True).value_counts())
         return self
 
     def predict(self, X):
         # predict the class based on the average delay of the previous 2 hours
-        delays = pd.to_numeric(X["R_dep_avg_DepDelayMinutes_sfd"], errors="coerce").fillna(0)
+        delays = pd.to_numeric(X[self.delay_feature], errors="coerce").fillna(0)
         return pd.cut(delays, bins=self.class_bins, labels=[0, 1, 2, 3], include_lowest=True).astype(int)
 def make_model(name: str):
     """Build a supported multiclass classifier by name."""
@@ -40,20 +43,22 @@ def make_model(name: str):
         return BaselineModel()
     elif name == "logistic_regression":
         return LogisticRegression(
-            max_iter=500,
+            max_iter=3000,
             class_weight="balanced",
             random_state=RANDOM_STATE,
+            n_jobs=-1
         )     
-    elif name == "logistic_regression_pipline":
+    elif name == "logistic_regression_pipeline":
         return Pipeline(
             [
                 ("scaler", StandardScaler(with_mean=False)),
                 (
                     "classifier",
                     LogisticRegression(
-                        max_iter=500,
+                        max_iter=3000,
                         class_weight="balanced",
                         random_state=RANDOM_STATE,
+                        n_jobs=-1
                     ),
                 ),
             ]
@@ -144,6 +149,9 @@ def get_feature_importances(model, feature_names: list[str]):
     return feature_importances
 
 def plot_feature_importances(feature_importances: pd.Series, top_n: int = 20):
+    if feature_importances.empty:
+        print("No feature importances available for this model type")
+        return
     plt.figure(figsize=(10, 6))
     feature_importances.head(top_n).plot(kind="barh")
     plt.gca().invert_yaxis()
@@ -152,11 +160,11 @@ def plot_feature_importances(feature_importances: pd.Series, top_n: int = 20):
     plt.show()
 
 
-def default_param_distributions(name: str) -> dict[str, list[object]]:
+def default_param_distributions(name: str) -> dict[str, list[object]|object]:
     """Small search spaces suitable for a first tuning pass."""
     if name == "logistic_regression":
         return {
-            "classifier__C": [0.01, 0.1, 1.0, 10.0],
+            "C": loguniform(10**(-3), 10),
         }
     if name == "random_forest":
         return {
@@ -170,13 +178,17 @@ def default_param_distributions(name: str) -> dict[str, list[object]]:
             "learning_rate": [0.03, 0.06, 0.1],
             "max_iter": [100, 200, 400],
             "max_leaf_nodes": [15, 31, 63],
+            "min_samples_leaf": [20, 50, 100],
             "l2_regularization": [0.0, 0.01, 0.1],
         }
     if name == "xgboost":
         return {
-            "learning_rate": [0.01, 0.1, 0.2],
-            "n_estimators": [50, 100, 200, 400],
-            "max_depth": [3, 6, 9, 12],
+            "learning_rate": [0.03, 0.06, 0.1],
+            "n_estimators": [100, 200, 400],
+            "max_depth": [3, 5, 7, 9],
+            "subsample": [0.7, 0.9, 1.0],
+            "colsample_bytree": [00.7, 0.9, 1.0],
+            "reg_lambda": [1.0, 3.0, 10.0]
         }
     if name in {"svc", "support_vector_classifier"}:
         return {
