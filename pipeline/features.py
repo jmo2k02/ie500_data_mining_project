@@ -13,7 +13,7 @@ COLS_TO_DROP = [
     "floor_informationtime_UTC",
     "Information_time",
     "floor_informationtime",
-    "FlightID_prev_flight_delay_info",
+    # "FlightID_prev_flight_delay_info",
     "dep_hour", # aleady included in the CRSDepDateTime
     "ArrDelayMinutes", # target variable, should not be included as a feature, once the categorical target variable is created, the original delay minutes column should be dropped to avoid leakage   
     ]
