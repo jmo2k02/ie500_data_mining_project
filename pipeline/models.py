@@ -70,6 +70,7 @@ def make_model(name: str):
         return RandomForestClassifier(
             n_estimators=200,
             min_samples_leaf=10,
+            max_depth=16,
             class_weight="balanced_subsample",
             n_jobs=-1,
             random_state=RANDOM_STATE,
