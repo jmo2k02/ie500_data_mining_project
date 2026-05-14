@@ -14,6 +14,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
+N_JOBS = -1
 RANDOM_STATE = 42
 # extends a standart classifer to predict the most frequent class, so it is a simple baseline model
 class BaselineModel(BaseEstimator, ClassifierMixin):
@@ -46,7 +47,7 @@ def make_model(name: str):
             max_iter=3000,
             class_weight="balanced",
             random_state=RANDOM_STATE,
-            n_jobs=-1
+            n_jobs=N_JOBS
         )     
     elif name == "logistic_regression_pipeline":
         return Pipeline(
@@ -58,7 +59,7 @@ def make_model(name: str):
                         max_iter=3000,
                         class_weight="balanced",
                         random_state=RANDOM_STATE,
-                        n_jobs=-1
+                        n_jobs=N_JOBS
                     ),
                 ),
             ]
@@ -70,7 +71,7 @@ def make_model(name: str):
             min_samples_leaf=10,
             max_depth=16,
             class_weight="balanced_subsample",
-            n_jobs=-1,
+            n_jobs=N_JOBS,
             random_state=RANDOM_STATE,
         )
     elif name == "hist_gradient_boosting":
@@ -93,7 +94,7 @@ def make_model(name: str):
             colsample_bytree=0.8,
             random_state=RANDOM_STATE,
             eval_metric="mlogloss",
-            n_jobs=-1,
+            n_jobs=N_JOBS,
         )
     elif name == "naive_bayes":
         from sklearn.naive_bayes import MultinomialNB
