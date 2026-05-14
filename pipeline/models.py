@@ -31,13 +31,13 @@ class BaselineModel(BaseEstimator, ClassifierMixin):
         # the bins are 0 to 15 minutes, 15 to 60 minutes, 60 to 180 minutes, and more than 180 minutes
         self.class_bins = [0, 15, 60, 180, np.inf]
         # print out the disrtibution of how many flights would get predicted into each class based on the 2h_prev_avg_delay_so_far_day feature, to get an idea of how good this heuristic is
-        print("Distribution of predicted classes based on the 2h_prev_avg_delay_so_far_day feature:")
-        print(pd.cut(pd.to_numeric(X["2h_prev_avg_delay_so_far_day"], errors="coerce").fillna(0), bins=self.class_bins, labels=[0, 1, 2, 3], include_lowest=True).value_counts())
+        print("Distribution of predicted classes based on the R_dep_avg_DepDelayMinutes_sfd feature:")
+        print(pd.cut(pd.to_numeric(X["R_dep_avg_DepDelayMinutes_sfd"], errors="coerce").fillna(0), bins=self.class_bins, labels=[0, 1, 2, 3], include_lowest=True).value_counts())
         return self
 
     def predict(self, X):
         # predict the class based on the average delay of the previous 2 hours
-        delays = pd.to_numeric(X["2h_prev_avg_delay_so_far_day"], errors="coerce").fillna(0)
+        delays = pd.to_numeric(X["R_dep_avg_DepDelayMinutes_sfd"], errors="coerce").fillna(0)
         return pd.cut(delays, bins=self.class_bins, labels=[0, 1, 2, 3], include_lowest=True).astype(int)
 def make_model(name: str):
     """Build a supported multiclass classifier by name."""

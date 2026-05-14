@@ -11,9 +11,10 @@ from targets import DELAY_CLASS_ORDER
 COLS_TO_DROP = [
     "Information_time_UTC", # not relevant for a model
     "floor_informationtime_UTC",
+    "UTC_CRS_FlightDate",
     "Information_time",
     "floor_informationtime",
-    "FlightID_prev_flight_delay_info",
+    "route_delay",
     "dep_hour", # aleady included in the CRSDepDateTime
     "ArrDelayMinutes", # target variable, should not be included as a feature, once the categorical target variable is created, the original delay minutes column should be dropped to avoid leakage   
     ]
@@ -28,8 +29,7 @@ ONE_HOT_COLS = [
     "Origin","Dest" # ORIGIN an DEST airports
     ]
 # list of numerical columns to scale with min max scaler
-NORMINAL_ENCODE =["2h_prev_flights_so_far_day","2h_prev_cum_count_so_far_day",
-                "2h_prev_cum_cancelled_so_far_day",
+NORMINAL_ENCODE =[
                 "DaysToNearestHoliday","Distance","LateAircraftDelay_prev_flight_delay_info",
                 "WeatherDelay_prev_flight_delay_info","NASDelay_prev_flight_delay_info","CarrierDelay_prev_flight_delay_info"
                   ]
@@ -45,6 +45,33 @@ NORMINAL_ENCODE_HIST = [
     "hist_origin_delay", "hist_origin_delay_7d", "hist_origin_delay_30d",
     "hist_dest_delay", "hist_dest_delay_7d", "hist_dest_delay_30d",
 ]
+#day so far columns
+NORMAL_ENCODE_DAY_SO_FAR = [
+    'R_dep_cum_count_sfd', 'R_dep_cum_DepDelayMinutes_sfd', #'R_dep_avg_DepDelayMinutes_sfd', m-> not this one , it will not be encoded, sicne it is used for the basline
+    'R_dep_count_fligts_lh', 'R_dep_avg_DepDelayMinutes_lh',
+
+    'R_arr_origin_cum_count_sfd',
+    'R_arr_origin_cum_ArrDelayMinutes_sfd', 'R_arr_origin_avg_ArrDelayMinutes_sfd',
+    'R_arr_origin_cum_route_delay_sfd', 'R_arr_origin_avg_route_delay_sfd',
+    'R_arr_origin_cum_LateAircraftDelay_sfd', 'R_arr_origin_avg_LateAircraftDelay_sfd',
+    'R_arr_origin_cum_WeatherDelay_sfd', 'R_arr_origin_avg_WeatherDelay_sfd',
+    'R_arr_origin_cum_NASDelay_sfd', 'R_arr_origin_avg_NASDelay_sfd',
+    'R_arr_origin_cum_CarrierDelay_sfd', 'R_arr_origin_avg_CarrierDelay_sfd',
+        'R_arr_origin_count_fligts_lh', 'R_arr_origin_avg_ArrDelayMinutes_lh',
+        'R_arr_origin_avg_route_delay_lh', 'R_arr_origin_avg_LateAircraftDelay_lh',
+    'R_arr_origin_avg_WeatherDelay_lh', 'R_arr_origin_avg_NASDelay_lh', 'R_arr_origin_avg_CarrierDelay_lh',
+
+    'R_dest_arrived_cum_count_sfd', 'R_dest_arrived_cum_ArrDelayMinutes_sfd',
+    'R_dest_arrived_avg_ArrDelayMinutes_sfd', 'R_dest_arrived_cum_route_delay_sfd',
+    'R_dest_arrived_avg_route_delay_sfd', 'R_dest_arrived_cum_LateAircraftDelay_sfd',
+    'R_dest_arrived_avg_LateAircraftDelay_sfd', 'R_dest_arrived_cum_WeatherDelay_sfd',
+    'R_dest_arrived_avg_WeatherDelay_sfd', 'R_dest_arrived_cum_NASDelay_sfd',
+    'R_dest_arrived_avg_NASDelay_sfd', 'R_dest_arrived_cum_CarrierDelay_sfd',
+    'R_dest_arrived_avg_CarrierDelay_sfd', 'R_dest_arrived_count_fligts_lh',
+    'R_dest_arrived_avg_ArrDelayMinutes_lh', 'R_dest_arrived_avg_route_delay_lh',
+    'R_dest_arrived_avg_LateAircraftDelay_lh', 'R_dest_arrived_avg_WeatherDelay_lh',
+    'R_dest_arrived_avg_NASDelay_lh', 'R_dest_arrived_avg_CarrierDelay_lh']
+                            
 
 # NORMINAL_ENCODE_HIST = ["hd_airline_arr_all","hd_airline_arr_7d","hd_airline_arr_30d", # historical average arrival delay for the airline, calculated over all time, the last 7 days and the last 30 days
 #                         "hd_airline_carrier_7d","hd_airline_carrier_30d", # historical average arrival delay, for the airline, which is confirmed carrier delay.
@@ -77,12 +104,13 @@ LEAVE_AS_IS = ["Prev_flight_DelayMinutes","Expected_Tournaround_time",
                "DistanceGroup","Year","Month",
                "DayOfWeek","DayofMonth","CRSElapsedTime",
                  "Time_since_last_certified_record","Flights_before_today",
-                 "total_Flights_scheduled_today","2h_prev_avg_delay_so_far_day"
+                 "total_Flights_scheduled_today","R_dep_avg_DepDelayMinutes_sfd"
                ]
 # 
 BOOLEAN_COLS = ["has_prev_flight",
                 "IsHoliday",
                 "FirstFlightRecord","is_Return_flight",
+                "Prev_flight_has_departed",
                 "Same_day_previous_flight"]
 # semi bolean (3 Values)
 SEMI_BOOLEAN_COLS = ["Airplane_already_at_airport"] # 0 for not at the airport, 1 for already at the airport, 0.5 for unknown
@@ -91,7 +119,7 @@ TIME_COLUMN = "CRSDepDateTime_UTC"
 TARGET_COLUMN = "delay_class"
 
 # combine all the scaling columns for easier access in the fit_transform function
-SCALING_COLS = DATIMES_TO_SCALE + NORMINAL_ENCODE + NORMINAL_ENCODE_WEATHER + NORMINAL_ENCODE_HIST + NORMAL_ENCODE_LAG
+SCALING_COLS = DATIMES_TO_SCALE + NORMINAL_ENCODE + NORMINAL_ENCODE_WEATHER + NORMINAL_ENCODE_HIST + NORMAL_ENCODE_LAG + NORMAL_ENCODE_DAY_SO_FAR
 
 ALL_FEATURE_COLS = ONE_HOT_COLS + SCALING_COLS + LEAVE_AS_IS + BOOLEAN_COLS + SEMI_BOOLEAN_COLS
 ALL_COLS_SET = set(ALL_FEATURE_COLS + [TARGET_COLUMN] + COLS_TO_DROP)
