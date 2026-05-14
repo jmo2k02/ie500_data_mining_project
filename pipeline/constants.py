@@ -45,7 +45,6 @@ AIRLINE_LIMIT_LIST = ["AS", "AA", "DL", "F9", "B6", "WN", "UA"]
 
 
 KEEP_COLS = {
-    "Unnamed: 0": "int64",
     "Year": "int64",
     "Month": "int64",
     "DayofMonth": "int64",
