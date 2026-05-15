@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-N_JOBS = 9
+N_JOBS = 1
 RANDOM_STATE = 42
 # extends a standart classifer to predict the most frequent class, so it is a simple baseline model
 class BaselineModel(BaseEstimator, ClassifierMixin):
@@ -86,7 +86,7 @@ def make_model(name: str):
     # xgboost
     elif name == "xgboost":
         from xgboost import XGBClassifier
-            return XGBClassifier(
+        return XGBClassifier(
             objective="multi:softprob",
             tree_method="hist",
             learning_rate=0.06,

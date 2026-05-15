@@ -48,6 +48,7 @@ class TrainingConfig:
     tune: bool = False
     n_iter: int = 10
     cv_splits: int = 3
+    persist_tuned_models: bool = True
     mlflow_experiment: str | None = None
 
 
@@ -128,13 +129,18 @@ def run_training(config: TrainingConfig) -> dict[str, float]:
     weights = _resolve_class_weights(config.weights, y_train)
     sample_weights = compute_sample_weight(class_weight=weights, y=y_train) if weights else None
 
+    run_id, run_dir = _make_run_directory(config)
+
     model = make_model(config.model_name)
+    tuned_model_artifacts = None
     if config.tune:
-        model = _tune_model(
+        model, tuned_model_artifacts = _tune_model(
             model,
             config,
             x_train,
             y_train,
+            run_dir,
+            x_train.columns,
         )
     else:
         _fit_estimator_with_sample_weight(model, x_train, y_train, sample_weights)
@@ -162,6 +168,9 @@ def run_training(config: TrainingConfig) -> dict[str, float]:
         val_rows=len(val_df),
         test_rows=len(test_df),
         weights=weights,
+        run_id=run_id,
+        run_dir=run_dir,
+        tuned_model_artifacts=tuned_model_artifacts,
     )
     _log_mlflow(config, train_metrics, val_metrics, test_metrics)
     plotConfusionMatrix(predictions=val_predictions, y_true=y_val)
@@ -190,11 +199,21 @@ def _load_dataframe(storage: LoaderStorage, input_path: str) -> pd.DataFrame:
     raise ValueError("Only .parquet and .csv inputs are supported")
 
 
+def _make_run_directory(config: TrainingConfig) -> tuple[str, Path]:
+    run_timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    run_id = f"{run_timestamp}_{config.model_name}"
+    run_dir = Path(config.output_dir) / "runs" / run_id
+    run_dir.mkdir(parents=True, exist_ok=True)
+    return run_id, run_dir
+
+
 def _tune_model(
     model,
     config: TrainingConfig,
     x_train: pd.DataFrame,
     y_train: pd.Series,
+    run_dir: Path,
+    feature_columns,
 ):
     model = ClassWeightTunedClassifier(model)
     param_distributions = _tuning_param_distributions(config.model_name)
@@ -205,16 +224,76 @@ def _tune_model(
         n_iter=config.n_iter,
         scoring=make_scorer(fbeta_score, beta=2, average="macro", zero_division=0),
         cv=TimeSeriesSplit(n_splits=config.cv_splits),
-        n_jobs=-1,
+        n_jobs=3,
         random_state=42,
         verbose=1,
     )
     search.fit(x_train, y_train)
     best_model = search.best_estimator_
+    cv_results = pd.DataFrame(search.cv_results_)
     best_model._tuning_best_params = search.best_params_
     best_model._tuning_best_score = search.best_score_
-    best_model._tuning_cv_results = pd.DataFrame(search.cv_results_)
-    return best_model
+    best_model._tuning_cv_results = cv_results
+    tuned_model_artifacts = _fit_and_persist_tuned_candidate_models(
+        model,
+        cv_results,
+        search.best_index_,
+        best_model,
+        x_train,
+        y_train,
+        run_dir,
+        feature_columns,
+    ) if config.persist_tuned_models else []
+    best_model._tuning_stored_model_count = len(tuned_model_artifacts)
+    return best_model, tuned_model_artifacts
+
+
+def _fit_and_persist_tuned_candidate_models(
+    base_model,
+    cv_results: pd.DataFrame,
+    best_index: int,
+    best_model,
+    x_train: pd.DataFrame,
+    y_train: pd.Series,
+    run_dir: Path,
+    feature_columns,
+) -> list[dict[str, object]]:
+    ranked_results = (
+        cv_results.reset_index(names="candidate_index")
+        .sort_values(
+            ["rank_test_score", "mean_test_score", "candidate_index"],
+            ascending=[True, False, True],
+        )
+    )
+    artifacts = []
+    for position, row in enumerate(ranked_results.itertuples(index=False), start=1):
+        params = row.params
+        candidate_index = int(row.candidate_index)
+        candidate_name = f"tuned_model{position}"
+        if candidate_index == best_index:
+            candidate_model = best_model
+        else:
+            candidate_model = clone(base_model)
+            candidate_model.set_params(**params)
+            candidate_model.fit(x_train, y_train)
+
+        artifacts.append(
+            _persist_tuned_candidate_model(
+                candidate_model,
+                {
+                    "name": candidate_name,
+                    "candidate_rank": int(row.rank_test_score),
+                    "candidate_index": candidate_index,
+                    "is_best": candidate_index == best_index,
+                    "mean_test_score": row.mean_test_score,
+                    "std_test_score": row.std_test_score,
+                    "params": params,
+                },
+                run_dir,
+                feature_columns,
+            )
+        )
+    return artifacts
 
 
 def _tuning_param_distributions(model_name: str) -> dict[str, object]:
@@ -320,10 +399,10 @@ def _persist_outputs(
     val_rows: int,
     test_rows: int,
     weights,
+    run_id: str,
+    run_dir: Path,
+    tuned_model_artifacts: list[dict[str, object]] | None = None,
 ) -> None:
-    run_timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    run_id = f"{run_timestamp}_{config.model_name}"
-    run_dir = Path(config.output_dir) / "runs" / run_id
     images_dir = run_dir / "images"
     run_dir.mkdir(parents=True, exist_ok=True)
     images_dir.mkdir(parents=True, exist_ok=True)
@@ -383,6 +462,8 @@ def _persist_outputs(
         cv_results_path = run_dir / "tuning_cv_results.csv"
         cv_results.to_csv(cv_results_path, index=False)
 
+    tuned_model_artifacts = tuned_model_artifacts or []
+
     run_info = {
         "run_id": run_id,
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -412,6 +493,7 @@ def _persist_outputs(
             "validation_report_path": "classification_report_validation.csv",
             "test_report_path": "classification_report_test.csv",
             "tuning_cv_results_path": "tuning_cv_results.csv" if cv_results_path else None,
+            "tuned_models": tuned_model_artifacts,
             "images": saved_images,
         },
         "model": {
@@ -426,13 +508,14 @@ def _persist_outputs(
             "n_iter": config.n_iter if config.tune else None,
             "cv_splits": config.cv_splits if config.tune else None,
             "class_weight_intervals": {
-                "0": [0.1, 0.5],
-                "1": [0.5, 1.0],
-                "2": [1.0, 2.0],
-                "3": [1.0, 4.0],
+                "0": [0.1, 0.6],
+                "1": [0.5, 1.5],
+                "2": [1.0, 4.0],
+                "3": [2.0, 10.0],
             } if config.tune else None,
             "best_params": getattr(model, "_tuning_best_params", None),
             "best_score": getattr(model, "_tuning_best_score", None),
+            "stored_model_count": len(tuned_model_artifacts) if config.tune else 0,
         },
         "metrics": {
             "train": train_metrics,
@@ -446,6 +529,47 @@ def _persist_outputs(
         "feature_importances_top_30": feature_importances.head(30),
     }
     run_info_path.write_text(json.dumps(_make_json_safe(run_info), indent=2))
+
+
+def _persist_tuned_candidate_model(
+    model,
+    candidate: dict[str, object],
+    run_dir: Path,
+    feature_columns,
+) -> dict[str, object]:
+    feature_names = list(feature_columns)
+    candidate_name = str(candidate["name"])
+    candidate_dir = run_dir / candidate_name
+    candidate_dir.mkdir(parents=True, exist_ok=True)
+
+    model_path = candidate_dir / "model.joblib"
+    features_path = candidate_dir / "features.json"
+    info_path = candidate_dir / "candidate_info.json"
+
+    joblib.dump(model, model_path)
+    features_path.write_text(json.dumps(feature_names, indent=2))
+
+    candidate_info = dict(candidate)
+    candidate_info.update(
+        {
+            "model_path": "model.joblib",
+            "features_path": "features.json",
+            "candidate_info_path": "candidate_info.json",
+        }
+    )
+    info_path.write_text(json.dumps(_make_json_safe(candidate_info), indent=2))
+
+    return {
+        "name": candidate_name,
+        "path": candidate_name,
+        "model_path": f"{candidate_name}/model.joblib",
+        "features_path": f"{candidate_name}/features.json",
+        "candidate_info_path": f"{candidate_name}/candidate_info.json",
+        "candidate_rank": candidate["candidate_rank"],
+        "candidate_index": candidate["candidate_index"],
+        "is_best": candidate["is_best"],
+        "mean_test_score": candidate["mean_test_score"],
+    }
 
 
 def _classification_report_frame_from_predictions(y_true, predictions) -> pd.DataFrame:
