@@ -30,10 +30,9 @@ from models import (
     plot_feature_importances,
     get_feature_importances,
 )
-from split import chronological_train_val_test_split
+from split import chronological_train_test_split, chronological_train_val_test_split
 from targets import DELAY_CLASS_ORDER, add_delay_class_target
-
-
+from constants import TIME_THRESHOLD
 @dataclass(frozen=True)
 class TrainingConfig:
     data_root: str
@@ -106,6 +105,7 @@ def run_training(config: TrainingConfig) -> dict[str, float]:
     """Train, evaluate, and persist a multiclass delay classifier."""
     storage = LoaderStorage(config.data_root)
     dataframe = _load_dataframe(storage, config.input_path)
+    print("load dataframe complete")
     if config.sample_frac < 1.0:
         dataframe = dataframe.sample(frac=config.sample_frac, random_state=42)
 
@@ -118,6 +118,13 @@ def run_training(config: TrainingConfig) -> dict[str, float]:
         dataframe,
         time_column=config.time_column,
     )
+    train_df,test_df = chronological_train_test_split(
+        dataframe,
+        time_column=config.time_column,
+        time_threshold=pd.to_datetime(TIME_THRESHOLD, utc=True).tz_localize(None)
+    )
+
+
     train_df = train_df.drop(columns=[config.time_column])
     val_df = val_df.drop(columns=[config.time_column])
     test_df = test_df.drop(columns=[config.time_column])
@@ -127,7 +134,7 @@ def run_training(config: TrainingConfig) -> dict[str, float]:
 
     weights = _resolve_class_weights(config.weights, y_train)
     sample_weights = compute_sample_weight(class_weight=weights, y=y_train) if weights else None
-
+    print("fitting model")
     model = make_model(config.model_name)
     if config.tune:
         model = _tune_model(
@@ -138,7 +145,7 @@ def run_training(config: TrainingConfig) -> dict[str, float]:
         )
     else:
         _fit_estimator_with_sample_weight(model, x_train, y_train, sample_weights)
-
+    print("model fitting complete")
     train_metrics, train_predictions = evaluate_classifier(model, x_train, y_train)
     val_metrics, val_predictions = evaluate_classifier(model, x_val, y_val)
     test_metrics, test_predictions = evaluate_classifier(model, x_test, y_test)
@@ -205,7 +212,7 @@ def _tune_model(
         n_iter=config.n_iter,
         scoring=make_scorer(fbeta_score, beta=2, average="macro", zero_division=0),
         cv=TimeSeriesSplit(n_splits=config.cv_splits),
-        n_jobs=-1,
+        n_jobs=2,
         random_state=42,
         verbose=1,
     )

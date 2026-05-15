@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-N_JOBS = -1
+N_JOBS = 2
 RANDOM_STATE = 42
 # extends a standart classifer to predict the most frequent class, so it is a simple baseline model
 class BaselineModel(BaseEstimator, ClassifierMixin):
@@ -97,8 +97,8 @@ def make_model(name: str):
             n_jobs=N_JOBS,
         )
     elif name == "naive_bayes":
-        from sklearn.naive_bayes import MultinomialNB
-        return MultinomialNB()
+        from sklearn.naive_bayes import MultinomialNB,GaussianNB
+        return GaussianNB()
     elif name in {"svc", "support_vector_classifier"}:
         from sklearn.svm import SVC
         return Pipeline(

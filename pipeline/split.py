@@ -26,3 +26,21 @@ def chronological_train_val_test_split(
         sorted_df.iloc[train_end:val_end].copy(),
         sorted_df.iloc[val_end:].copy(),
     )
+def chronological_train_test_split(
+    dataframe: pd.DataFrame,
+    time_column: str,
+    time_threshold: pd.Timestamp,
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Split rows chronologically into train, validation, and test sets."""
+    if time_column not in dataframe.columns:
+        raise ValueError(f"Missing required time column: {time_column}")
+    if time_threshold not in dataframe[time_column].values:
+        raise ValueError(f"Time threshold {time_threshold} not found in column {time_column}")
+
+    sorted_df = dataframe.sort_values(time_column).reset_index(drop=True)
+    train_end = sorted_df[sorted_df[time_column] < time_threshold].shape[0]
+
+    return (
+        sorted_df.iloc[:train_end].copy(),
+        sorted_df.iloc[train_end:].copy()
+    )

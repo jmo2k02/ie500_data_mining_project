@@ -76,3 +76,4 @@ KEEP_COLS = {
     "SecurityDelay": "float64",
     "LateAircraftDelay": "float64",
 }
+TIME_THRESHOLD = "2019-01-01T00:00:00Z"
