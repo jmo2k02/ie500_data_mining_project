@@ -279,7 +279,7 @@ Rows are sorted by `CRSDepDateTime_UTC` and sliced by position (not randomly):
 
 ## E — Target Creation (`targets.py`)
 
-`add_delay_class_target` cuts `ArrDelayMinutes` (or `DepDelayMinutes`) into the four bins using `pd.cut` with `right=True`. Rows where the cut produces NaN (flights with missing delay) are dropped.
+`add_delay_class_target` cuts `ArrDelayMinutes` into the four bins using `pd.cut` with `right=True`. Rows where the cut produces NaN (flights with missing delay) are dropped.
 
 Class balance in the ~4 M-row dataset:
 
