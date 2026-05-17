@@ -1,0 +1,404 @@
+{
+  "run_id": "20260516T051606Z_logistic_regression_pipeline",
+  "created_at_utc": "2026-05-16T05:16:08.804966+00:00",
+  "data": {
+    "data_root": "s3://data-mining",
+    "input_path": "data/features/n3_feature_engineered.parquet",
+    "sample_frac": 1.0,
+    "target_column": "delay_class",
+    "delay_column": "ArrDelayMinutes",
+    "time_column": "CRSDepDateTime_UTC"
+  },
+  "splits": {
+    "train_rows": 9618061,
+    "validation_rows": 2061013,
+    "test_rows": 2061014
+  },
+  "features": {
+    "count": 160,
+    "names": [
+      "Year",
+      "Month",
+      "DayofMonth",
+      "DayOfWeek",
+      "CRSElapsedTime",
+      "Distance",
+      "DistanceGroup",
+      "CRSDepDateTime",
+      "CRSArrDateTime",
+      "DayOfYear",
+      "R_dep_cum_count_sfd",
+      "R_dep_cum_DepDelayMinutes_sfd",
+      "R_dep_avg_DepDelayMinutes_sfd",
+      "R_dep_count_fligts_lh",
+      "R_dep_avg_DepDelayMinutes_lh",
+      "R_arr_origin_cum_count_sfd",
+      "R_arr_origin_cum_ArrDelayMinutes_sfd",
+      "R_arr_origin_avg_ArrDelayMinutes_sfd",
+      "R_arr_origin_cum_WeatherDelay_sfd",
+      "R_arr_origin_avg_WeatherDelay_sfd",
+      "R_arr_origin_cum_NASDelay_sfd",
+      "R_arr_origin_avg_NASDelay_sfd",
+      "R_arr_origin_count_fligts_lh",
+      "R_arr_origin_avg_ArrDelayMinutes_lh",
+      "R_arr_origin_avg_WeatherDelay_lh",
+      "R_arr_origin_avg_NASDelay_lh",
+      "R_dest_arrived_cum_count_sfd",
+      "R_dest_arrived_cum_ArrDelayMinutes_sfd",
+      "R_dest_arrived_avg_ArrDelayMinutes_sfd",
+      "R_dest_arrived_cum_NASDelay_sfd",
+      "R_dest_arrived_avg_NASDelay_sfd",
+      "R_dest_arrived_count_fligts_lh",
+      "R_dest_arrived_avg_ArrDelayMinutes_lh",
+      "R_dest_arrived_avg_NASDelay_lh",
+      "Flights_before_today",
+      "total_Flights_scheduled_today",
+      "FirstFlightRecord",
+      "Time_since_last_certified_record",
+      "has_prev_flight",
+      "Same_day_previous_flight",
+      "is_Return_flight",
+      "CRSTurnaroundTime",
+      "Prev_flight_DelayMinutes",
+      "Prev_flight_has_departed",
+      "Airplane_already_at_airport",
+      "Expected_Tournaround_time",
+      "LateAircraftDelay_prev_flight_delay_info",
+      "WeatherDelay_prev_flight_delay_info",
+      "NASDelay_prev_flight_delay_info",
+      "CarrierDelay_prev_flight_delay_info",
+      "IsHoliday",
+      "DaysToNearestHoliday",
+      "temp_DEP",
+      "rhum_DEP",
+      "prcp_DEP",
+      "wspd_DEP",
+      "temp_ARR",
+      "rhum_ARR",
+      "prcp_ARR",
+      "wspd_ARR",
+      "hist_airline_delay",
+      "hist_airline_delay_7d",
+      "hist_airline_delay_30d",
+      "hist_origin_delay",
+      "hist_origin_delay_7d",
+      "hist_origin_delay_30d",
+      "hist_dest_delay",
+      "hist_dest_delay_7d",
+      "hist_dest_delay_30d",
+      "hist_flg_delay",
+      "hist_flg_median_delay",
+      "hist_flg_count_delay",
+      "hist_flg_delay_30d",
+      "hist_flg_median_delay_30d",
+      "hist_flg_count_delay_30d",
+      "origin_yesterday_delay",
+      "origin_lastweek_delay",
+      "dest_yesterday_delay",
+      "dest_lastweek_delay",
+      "airline_yesterday_delay",
+      "airline_lastweek_delay",
+      "global_yesterday_delay",
+      "global_lastweek_delay",
+      "Reporting_Airline_AA",
+      "Reporting_Airline_AS",
+      "Reporting_Airline_B6",
+      "Reporting_Airline_DL",
+      "Reporting_Airline_F9",
+      "Reporting_Airline_UA",
+      "Reporting_Airline_WN",
+      "Origin_ATL",
+      "Origin_AUS",
+      "Origin_BNA",
+      "Origin_BOS",
+      "Origin_BWI",
+      "Origin_CLT",
+      "Origin_DAL",
+      "Origin_DCA",
+      "Origin_DEN",
+      "Origin_DFW",
+      "Origin_DTW",
+      "Origin_EWR",
+      "Origin_FLL",
+      "Origin_HNL",
+      "Origin_HOU",
+      "Origin_IAH",
+      "Origin_JFK",
+      "Origin_LAS",
+      "Origin_LAX",
+      "Origin_LGA",
+      "Origin_MCO",
+      "Origin_MDW",
+      "Origin_MIA",
+      "Origin_MSP",
+      "Origin_OAK",
+      "Origin_ORD",
+      "Origin_PDX",
+      "Origin_PHL",
+      "Origin_PHX",
+      "Origin_SAN",
+      "Origin_SEA",
+      "Origin_SFO",
+      "Origin_SLC",
+      "Origin_STL",
+      "Origin_TPA",
+      "Dest_ATL",
+      "Dest_AUS",
+      "Dest_BNA",
+      "Dest_BOS",
+      "Dest_BWI",
+      "Dest_CLT",
+      "Dest_DAL",
+      "Dest_DCA",
+      "Dest_DEN",
+      "Dest_DFW",
+      "Dest_DTW",
+      "Dest_EWR",
+      "Dest_FLL",
+      "Dest_HNL",
+      "Dest_HOU",
+      "Dest_IAH",
+      "Dest_JFK",
+      "Dest_LAS",
+      "Dest_LAX",
+      "Dest_LGA",
+      "Dest_MCO",
+      "Dest_MDW",
+      "Dest_MIA",
+      "Dest_MSP",
+      "Dest_OAK",
+      "Dest_ORD",
+      "Dest_PDX",
+      "Dest_PHL",
+      "Dest_PHX",
+      "Dest_SAN",
+      "Dest_SEA",
+      "Dest_SFO",
+      "Dest_SLC",
+      "Dest_STL",
+      "Dest_TPA"
+    ]
+  },
+  "target_classes": [
+    "no_delay",
+    "small_delay",
+    "medium_delay",
+    "large_delay"
+  ],
+  "artifacts": {
+    "model_path": "model.joblib",
+    "run_info_path": "run_info.json",
+    "features_path": "features.json",
+    "train_report_path": "classification_report_train.csv",
+    "validation_report_path": "classification_report_validation.csv",
+    "test_report_path": "classification_report_test.csv",
+    "tuning_cv_results_path": null,
+    "images": {
+      "train_confusion_matrix": "images/train_confusion_matrix.png",
+      "validation_confusion_matrix": "images/validation_confusion_matrix.png",
+      "test_confusion_matrix": "images/test_confusion_matrix.png"
+    }
+  },
+  "model": {
+    "name": "logistic_regression_pipeline",
+    "class_name": "Pipeline",
+    "parameters": {
+      "memory": null,
+      "steps": [
+        [
+          "scaler",
+          "StandardScaler(with_mean=False)"
+        ],
+        [
+          "classifier",
+          "LogisticRegression(class_weight='balanced', max_iter=1000, n_jobs=8,\n                   random_state=42, solver='saga')"
+        ]
+      ],
+      "transform_input": null,
+      "verbose": false
+    },
+    "class_weights": {
+      "0": 0.30802401636942867,
+      "1": 1.9187523839619014,
+      "2": 5.069843530587546,
+      "3": 28.503701486521727
+    }
+  },
+  "tuning": {
+    "enabled": false,
+    "scoring": null,
+    "n_iter": null,
+    "cv_splits": null,
+    "class_weight_intervals": null,
+    "best_params": null,
+    "best_score": null
+  },
+  "metrics": {
+    "train": {
+      "accuracy": 0.4260805790273112,
+      "balanced_accuracy": 0.39014319604965847,
+      "macro_f1": 0.267951746411509,
+      "macro_f2": 0.27442951739357435,
+      "weighted_f1": 0.519624169631761
+    },
+    "validation": {
+      "accuracy": 0.37985738081225107,
+      "balanced_accuracy": 0.37755567266036344,
+      "macro_f1": 0.25580312694028695,
+      "macro_f2": 0.2599896301614539,
+      "weighted_f1": 0.46689895723112657
+    },
+    "test": {
+      "accuracy": 0.4146633647321173,
+      "balanced_accuracy": 0.3875057803317627,
+      "macro_f1": 0.2685619895733411,
+      "macro_f2": 0.2719595662781787,
+      "weighted_f1": 0.5048761474235347
+    },
+    "overfit_gaps": {
+      "train_minus_validation_accuracy": 0.04622319821506016,
+      "train_minus_test_accuracy": 0.011417214295193934,
+      "train_minus_validation_balanced_accuracy": 0.01258752338929503,
+      "train_minus_test_balanced_accuracy": 0.0026374157178957747,
+      "train_minus_validation_macro_f1": 0.012148619471222033,
+      "train_minus_test_macro_f1": -0.0006102431618321136,
+      "train_minus_validation_macro_f2": 0.014439887232120474,
+      "train_minus_test_macro_f2": 0.0024699511153956633,
+      "train_minus_validation_weighted_f1": 0.05272521240063438,
+      "train_minus_test_weighted_f1": 0.014748022208226241
+    },
+    "train_classification_report": {
+      "no_delay": {
+        "precision": 0.9316888698079011,
+        "recall": 0.44424377925457,
+        "f1-score": 0.6016239020055246,
+        "support": 7806259.0
+      },
+      "small_delay": {
+        "precision": 0.1614823720640657,
+        "recall": 0.1802746004918742,
+        "f1-score": 0.1703618211070419,
+        "support": 1253166.0
+      },
+      "medium_delay": {
+        "precision": 0.0887574375955285,
+        "recall": 0.8342976060453995,
+        "f1-score": 0.16044572469392007,
+        "support": 474278.0
+      },
+      "large_delay": {
+        "precision": 0.2211231324059763,
+        "recall": 0.10175679840679011,
+        "f1-score": 0.13937553783954926,
+        "support": 84358.0
+      },
+      "accuracy": {
+        "precision": 0.4260805790273112,
+        "recall": 0.4260805790273112,
+        "f1-score": 0.4260805790273112,
+        "support": 0.4260805790273112
+      },
+      "macro avg": {
+        "precision": 0.3507629529683679,
+        "recall": 0.39014319604965847,
+        "f1-score": 0.267951746411509,
+        "support": 9618061.0
+      },
+      "weighted avg": {
+        "precision": 0.7835381839020598,
+        "recall": 0.4260805790273112,
+        "f1-score": 0.519624169631761,
+        "support": 9618061.0
+      }
+    },
+    "validation_classification_report": {
+      "no_delay": {
+        "precision": 0.9246222405384188,
+        "recall": 0.389789128084914,
+        "f1-score": 0.5483940652839422,
+        "support": 1634689.0
+      },
+      "small_delay": {
+        "precision": 0.15164844018956514,
+        "recall": 0.14508917621500403,
+        "f1-score": 0.14829631327493215,
+        "support": 285390.0
+      },
+      "medium_delay": {
+        "precision": 0.09338539978569874,
+        "recall": 0.8631171608479438,
+        "f1-score": 0.16853596518191588,
+        "support": 117838.0
+      },
+      "large_delay": {
+        "precision": 0.26674899660389007,
+        "recall": 0.11222722549359196,
+        "f1-score": 0.15798616402035778,
+        "support": 23096.0
+      },
+      "accuracy": {
+        "precision": 0.37985738081225107,
+        "recall": 0.37985738081225107,
+        "f1-score": 0.37985738081225107,
+        "support": 0.37985738081225107
+      },
+      "macro avg": {
+        "precision": 0.3591012692793932,
+        "recall": 0.37755567266036344,
+        "f1-score": 0.25580312694028695,
+        "support": 2061013.0
+      },
+      "weighted avg": {
+        "precision": 0.7626899673484437,
+        "recall": 0.37985738081225107,
+        "f1-score": 0.46689895723112657,
+        "support": 2061013.0
+      }
+    },
+    "test_classification_report": {
+      "no_delay": {
+        "precision": 0.9282627395435172,
+        "recall": 0.4328213367880585,
+        "f1-score": 0.5903704654346338,
+        "support": 1658019.0
+      },
+      "small_delay": {
+        "precision": 0.1529084651509757,
+        "recall": 0.13690302259833406,
+        "f1-score": 0.14446377693729265,
+        "support": 263515.0
+      },
+      "medium_delay": {
+        "precision": 0.09395436214280295,
+        "recall": 0.8595164039573339,
+        "f1-score": 0.1693923261336905,
+        "support": 113814.0
+      },
+      "large_delay": {
+        "precision": 0.28703703703703703,
+        "recall": 0.12078235798332425,
+        "f1-score": 0.1700213897877475,
+        "support": 25666.0
+      },
+      "accuracy": {
+        "precision": 0.4146633647321173,
+        "recall": 0.4146633647321173,
+        "f1-score": 0.4146633647321173,
+        "support": 0.4146633647321173
+      },
+      "macro avg": {
+        "precision": 0.36554065096858324,
+        "recall": 0.3875057803317627,
+        "f1-score": 0.2685619895733411,
+        "support": 2061014.0
+      },
+      "weighted avg": {
+        "precision": 0.7750705952094337,
+        "recall": 0.4146633647321173,
+        "f1-score": 0.5048761474235347,
+        "support": 2061014.0
+      }
+    }
+  },
+  "feature_importances_top_30": {}
+}
