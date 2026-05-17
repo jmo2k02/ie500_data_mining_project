@@ -2,7 +2,7 @@
 
 Our repo for the Data Mining Project.
 
-See the pipeline in the `/Pipeline` folder. There you will find notebooks named **A** through **D**. Each one contains one step of our pipeline. **Y** contains the Evaluation:
+Here you will find notebooks named **A** through **D**. Each one contains one step of our pipeline. **Y** contains the Evaluation:
 1. A -> Loader
 2. B -> Feature engineering
 3. C -> Training
