@@ -1,0 +1,13 @@
+[project]
+name = "first-eda"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "boto3>=1.42.91",
+    "jupyter>=1.1.1",
+    "polars>=1.39.3",
+    "python-dotenv>=1.2.2",
+    "s3fs>=0.4.2",
+]

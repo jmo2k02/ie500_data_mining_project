@@ -8,8 +8,6 @@ Our repo for the Data Mining Project
 - [Available Services](#available-services)
 - [Course Overview](#course-overview)
 - [Project Requirements](#project-requirements)
-- [Our Dataset: Twitch Gamers](#our-dataset-twitch-gamers)
-- [Proposed Approach](#proposed-approach)
 - [Timeline & Deliverables](#timeline--deliverables)
 
 ---
@@ -21,6 +19,27 @@ Our repo for the Data Mining Project
 | MLFlow  | http://116.203.119.229:5000/ | Experiment tracking, model registry, and artifact logging for managing the ML lifecycle. | user = "data_mining", pw = "admin123_datadays" |
 | S3-Storage | nbg1.your-objectstorage.com | Object storage backend for datasets, model artifacts, and other persisted files. | ask Justus |
 ---
+
+## S3 Helper (Upload/Download/Delete)
+
+There is a small helper class at `s3_storage.py` that loads the repo `.env` automatically and wraps common S3 operations.
+
+Example:
+
+```python
+from s3_storage import S3Storage
+
+s3 = S3Storage.from_env()
+
+# upload
+s3.upload_file(local_path="local.csv", key="datasets/local.csv")
+
+# download
+s3.download_file(key="datasets/local.csv", local_path="./downloads/local.csv")
+
+# delete
+s3.delete(key="datasets/local.csv")
+```
 
 ## Course Overview
 
@@ -91,135 +110,6 @@ Our repo for the Data Mining Project
 
 ---
 
-## Our Dataset: Twitch Gamers
-
-**Source:** [SNAP Stanford - Twitch Gamers](https://snap.stanford.edu/data/twitch_gamers.html)
-
-**Dataset Size:**
-- **Nodes:** 168,114 Twitch users
-- **Edges:** 6,797,557 mutual follower relationships
-- **Features per node:** 9 attributes
-
-**Node Attributes:**
-
-| Attribute | Type | Description |
-|-----------|------|-------------|
-| views | Numeric | Total channel view count |
-| mature | Binary | Explicit content flag (0/1) |
-| life_time | Numeric | Days since account creation |
-| created_at | Date | Account creation date |
-| updated_at | Date | Last profile update |
-| numeric_id | Numeric | Unique node identifier |
-| dead_account | Binary | Account status (0=active, 1=inactive) |
-| language | Categorical | Broadcaster language (20+ categories) |
-| affiliate | Binary | Twitch affiliate status (0/1) |
-
-**Network Properties:**
-- Large-scale social network graph
-- Mutual follower relationships indicate stronger connections than one-way follows
-- Rich node features enable both supervised and unsupervised learning
-
----
-
-## Proposed Approach
-
-### Problem Statement
-
-We will tackle **multiple data mining tasks** to comprehensively analyze the Twitch gaming community:
-
-1. **Binary Classification:** Predict affiliate status (affiliate vs non-affiliate)
-2. **Multi-class Classification:** Predict broadcaster language
-3. **Regression:** Predict view count based on network features and account characteristics
-4. **Cluster Analysis:** Identify communities of streamers with similar profiles
-
-### Why This Dataset?
-
-- **Ground truth available** for supervised learning (affiliate status, language, etc.)
-- **Large scale** - demonstrates ability to work with big data
-- **Diverse task types** - covers classification, regression, and clustering
-- **Real-world relevance** - insights could inform content strategy for streamers
-- **Rich feature space** - combines network features (graph structure) with node attributes
-
-### Data Exploration & Preprocessing
-
-**1. Initial Data Profiling**
-- Distribution of classes (affiliate status, languages, mature content)
-- Missing value analysis
-- Outlier detection (views, life_time)
-- Correlation analysis between features
-
-**2. Feature Engineering**
-- **Network features:**
-  - Node degree (number of connections)
-  - Clustering coefficient (network density around node)
-  - PageRank score (influence metric)
-  - Core number (k-core decomposition)
-- **Temporal features:**
-  - Account age in days
-  - Days since last update
-  - Activity rate (views per day alive)
-- **Derived features:**
-  - Log-transformed views (handle skewness)
-  - Binary indicator for high-activity accounts
-  - Language family groupings (e.g., European vs Asian languages)
-
-**3. Preprocessing Steps**
-- Handle missing values (imputation or removal)
-- Normalize numerical features (StandardScaler)
-- Encode categorical variables (One-Hot or Label Encoding)
-- Address class imbalance if present (SMOTE, class weights)
-- Train/validation/test split (60/20/20 or 10-fold cross-validation)
-
-### Proposed Methods
-
-**Task 1: Binary Classification (Affiliate Status)**
-
-| Method | Rationale | Hyperparameters to Tune |
-|--------|-----------|-------------------------|
-| K-Nearest Neighbors | Baseline, works well with network proximity | k (1-20), distance metric |
-| Decision Tree | Interpretable rules, handles mixed data types | max_depth, min_samples_split |
-| Random Forest | Ensemble method, robust to overfitting | n_estimators, max_depth, max_features |
-| Gradient Boosting (XGBoost) | Often best performance on tabular data | learning_rate, n_estimators, max_depth |
-| Logistic Regression | Linear baseline, fast | C (regularization strength) |
-
-**Evaluation Metrics:**
-- Accuracy (if balanced)
-- Precision, Recall, F1-score (if imbalanced)
-- ROC-AUC curve
-- Confusion matrix analysis
-
-**Task 2: Multi-class Classification (Language)**
-- Same methods as Task 1, adapted for multi-class
-- Focus on top 5-10 languages if computational constraints arise
-- Evaluation: Accuracy, macro/micro F1-score, confusion matrix
-
-**Task 3: Regression (View Count Prediction)**
-- Linear Regression (baseline)
-- Random Forest Regressor
-- Gradient Boosting Regressor
-- Evaluation: RMSE, MAE, R² score
-
-**Task 4: Cluster Analysis**
-- K-Means (with elbow method for optimal k)
-- DBSCAN (identify core/outlier streamers)
-- Hierarchical clustering
-- Evaluation: Silhouette score, inspect cluster characteristics
-
-### Baseline Comparisons
-
-- **Classification:** Majority class predictor
-- **Regression:** Mean/median view count predictor
-- **Clustering:** Random cluster assignment
-
-### Iterative Improvement Strategy
-
-1. **Iteration 1:** Simple preprocessing + baseline methods
-2. **Iteration 2:** Add network features + tune hyperparameters
-3. **Iteration 3:** Advanced feature engineering + ensemble methods
-4. **Iteration 4:** Error analysis → targeted improvements
-
----
-
 ## Timeline & Deliverables
 
 | Date | Milestone | Tasks |
@@ -237,30 +127,7 @@ We will tackle **multiple data mining tasks** to comprehensively analyze the Twi
 
 ---
 
-## Team Organization
 
-**Communication:**
-- Weekly sync meetings (decide schedule)
-- Shared drive for code and documents (GitHub + Google Drive)
-- Track progress in shared spreadsheet
-
-**Suggested Roles:**
-- **Data Preparation Lead** (2 people): Preprocessing, feature engineering
-- **Modeling Lead** (2 people): Implement and tune classification/regression models
-- **Clustering/Analysis Lead** (1 person): Cluster analysis, network visualization
-- **Report/Documentation Lead** (1 person): Coordinate writing, create visualizations
-
-**All members:** Participate in coaching sessions, review each other's work, contribute to final report
-
----
-
-## Services
-
-| Service | URL | Description |
-|---------|-----|-------------|
-| | | |
-
----
 
 ## Resources
 

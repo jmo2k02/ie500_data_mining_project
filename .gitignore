@@ -105,3 +105,4 @@ runs/
 #!outputs/.gitkeep
 #!models/.gitkeep
 !jmro/proposals/twitch_gamers/results
+.gitnexus
