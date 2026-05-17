@@ -1,6 +1,13 @@
 # Data Nuggets - ie500_data_mining_project
 
-Our repo for the Data Mining Project
+Our repo for the Data Mining Project.
+
+See the pipeline in the `/Pipeline` folder. There you will find notebooks named **A** through **D**. Each one contains one step of our pipeline. **Y** contains the Evaluation:
+1. A -> Loader
+2. B -> Feature engineering
+3. C -> Training
+4. D -> Hyperparameter tuning
+5. Y -> Evaluation
 
 ## Table of Contents
 
